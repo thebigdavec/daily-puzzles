@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Puzzle Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            color-scheme: light dark;
+            
+            /* Define responsive colors using light-dark() */
+            --bg-color: light-dark(#f8fafc, #0f172a);
+            --card-bg: light-dark(#ffffff, #1e293b);
+            --text-primary: light-dark(#1e293b, #f1f5f9);
+            --text-secondary: light-dark(#64748b, #94a3b8);
+            --border-color: light-dark(#e2e8f0, #334155);
+            --accent-color: light-dark(#4f46e5, #818cf8);
+            --card-hover: light-dark(#f1f5f9, #334155);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .game-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-title {
+            color: var(--text-primary);
+        }
+
+        .checkbox-custom {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-custom.checked {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+
+        .checkbox-custom.checked svg {
+            display: block;
+            color: white;
+        }
+
+        .game-card.played {
+            opacity: 0.5;
+        }
+
+        .game-card.played .game-title {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .modal-bg {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .input-field {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .sortable-ghost {
+            opacity: 0.2;
+            background: var(--accent-color);
+        }
+
+        .game-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            object-fit: contain;
+            background: light-dark(#f1f5f9, #334155);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold mb-2">Daily Puzzles</h1>
+            <p id="current-date" style="color: var(--text-secondary)"></p>
+            
+            <div class="mt-4 flex flex-wrap justify-center gap-3">
+                <span id="progress-text" class="text-sm font-medium px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
+                    0/0 Completed
+                </span>
+                <button onclick="toggleAddMenu()" class="text-sm font-medium px-4 py-1.5 bg-indigo-500/10 text-indigo-500 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                    + Add/Edit Games
+                </button>
+                <button onclick="resetManual()" class="text-sm font-medium px-4 py-1.5 bg-slate-500/10 text-slate-500 rounded-full border border-slate-500/20 hover:bg-slate-500/20 transition-colors">
+                    Reset Marks
+                </button>
+            </div>
+        </header>
+
+        <!-- Add Game Form (Hidden by default) -->
+        <div id="add-menu" class="hidden mb-8 p-6 rounded-2xl game-card shadow-xl">
+            <h3 class="text-lg font-bold mb-4">Manage Your List</h3>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="new-game-name" placeholder="Game Name (e.g. Sudoku)" class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="url" id="new-game-url" placeholder="https://..." class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button onclick="addNewGame()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">
+                    Add to My List
+                </button>
+                <p class="text-xs text-center" style="color: var(--text-secondary)">
+                    Tip: You can delete games by clicking the 'X' icon on the cards.
+                </p>
+            </div>
+        </div>
+
+        <!-- Game List Container -->
+        <div id="game-list" class="space-y-3">
+            <!-- Items injected by JS -->
+        </div>
+
+        <footer class="mt-12 text-center text-xs opacity-50">
+            <p>Drag games to reorder • Resets daily at midnight</p>
+        </footer>
+    </div>
+
+    <!-- External Script for Drag and Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <script>
+        const DEFAULT_GAMES = [
+            { id: 'strands', name: 'Strands', url: 'https://www.nytimes.com/games/strands' },
+            { id: 'connections', name: 'Connections', url: 'https://www.nytimes.com/games/connections' },
+            { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
+            { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
+            { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
+            { id: 'wordle', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle' },
+            { id: 'wordly', name: 'Wordly', url: 'https://wordly.org/uk?challenge=c3dhdGg' },
+            { id: 'tightrope', name: 'Tightrope', url: 'https://www.britannica.com/quiz/tightrope' },
+            { id: 'waffle', name: 'Waffle', url: 'https://wafflegame.net/daily' }
+        ];
+
+        let state = {
+            games: [],
+            playedIds: [],
+            lastResetDate: ''
+        };
+
+        function init() {
+            loadData();
+            checkMidnightReset();
+            render();
+            updateDateDisplay();
+            
+            const el = document.getElementById('game-list');
+            Sortable.create(el, {
+                animation: 200,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    const newOrder = Array.from(el.children).map(item => item.dataset.id);
+                    reorderGames(newOrder);
+                }
+            });
+
+            setInterval(checkMidnightReset, 60000);
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('puzzle_dashboard_v2');
+            if (saved) {
+                state = JSON.parse(saved);
+            } else {
+                state.games = [...DEFAULT_GAMES];
+                state.playedIds = [];
+                state.lastResetDate = getTodayString();
+                saveData();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('puzzle_dashboard_v2', JSON.stringify(state));
+        }
+
+        function getTodayString() {
+            return new Date().toDateString();
+        }
+
+        function updateDateDisplay() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, options);
+        }
+
+        function checkMidnightReset() {
+            const today = getTodayString();
+            if (state.lastResetDate !== today) {
+                state.playedIds = [];
+                state.lastResetDate = today;
+                saveData();
+                render();
+            }
+        }
+
+        function toggleAddMenu() {
+            const menu = document.getElementById('add-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function addNewGame() {
+            const nameInput = document.getElementById('new-game-name');
+            const urlInput = document.getElementById('new-game-url');
+            
+            if (!nameInput.value || !urlInput.value) return;
+
+            const newGame = {
+                id: 'custom-' + Date.now(),
+                name: nameInput.value,
+                url: urlInput.value
+            };
+
+            state.games.push(newGame);
+            nameInput.value = '';
+            urlInput.value = '';
+            
+            saveData();
+            render();
+        }
+
+        function removeGame(id) {
+            state.games = state.games.filter(g => g.id !== id);
+            state.playedIds = state.playedIds.filter(pid => pid !== id);
+            saveData();
+            render();
+        }
+
+        function togglePlayed(id) {
+            const index = state.playedIds.indexOf(id);
+            if (index === -1) {
+                state.playedIds.push(id);
+            } else {
+                state.playedIds.splice(index, 1);
+            }
+            saveData();
+            render();
+        }
+
+        function resetManual() {
+            state.playedIds = [];
+            saveData();
+            render();
+        }
+
+        function reorderGames(idList) {
+            const newGames = idList.map(id => state.games.find(g => g.id === id));
+            state.games = newGames;
+            saveData();
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const count = state.playedIds.length;
+            const total = state.games.length;
+            document.getElementById('progress-text').innerText = `${count}/${total} Completed`;
+        }
+
+        function getFaviconUrl(gameUrl) {
+            try {
+                const url = new URL(gameUrl);
+                return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function render() {
+            const container = document.getElementById('game-list');
+            container.innerHTML = '';
+
+            state.games.forEach(game => {
+                const isPlayed = state.playedIds.includes(game.id);
+                const favicon = getFaviconUrl(game.url);
+                
+                const card = document.createElement('div');
+                card.className = `game-card flex items-center justify-between p-4 rounded-xl ${isPlayed ? 'played' : ''}`;
+                card.dataset.id = game.id;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <div class="drag-handle cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                        </div>
+                        <div class="checkbox-custom ${isPlayed ? 'checked' : ''}" onclick="togglePlayed('${game.id}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <img src="${favicon}" 
+                                 class="game-logo" 
+                                 alt="" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                            <div class="hidden text-indigo-400" style="display:none">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                            </div>
+                            <a href="${game.url}" target="_blank" class="game-title text-base font-semibold truncate hover:opacity-80 transition-opacity">
+                                ${game.name}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="${game.url}" target="_blank" class="p-2 opacity-40 hover:opacity-100 transition-opacity" title="Open Link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
+                        <button onclick="removeGame('${game.id}')" class="p-2 text-rose-500 opacity-20 hover:opacity-100 transition-opacity" title="Remove Game">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            updateProgress();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
