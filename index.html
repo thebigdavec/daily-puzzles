@@ -36,7 +36,7 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
             cursor: pointer;
             user-select: none;
-            touch-action: none; /* Required for smooth mobile dragging */
+            touch-action: none; 
         }
 
         .game-card:hover {
@@ -91,9 +91,24 @@
             color: var(--text-secondary);
             pointer-events: none;
         }
+
+        /* Fixed Progress Badge */
+        #progress-text {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
+
+    <!-- Sticky Progress Indicator -->
+    <span id="progress-text" class="text-xs font-bold px-3 py-1.5 bg-emerald-500/20 text-emerald-500 rounded-full border border-emerald-500/30">
+        0/0
+    </span>
 
     <div class="max-w-2xl mx-auto">
         <!-- Header -->
@@ -102,9 +117,6 @@
             <p id="current-date" style="color: var(--text-secondary)"></p>
             
             <div class="mt-4 flex flex-wrap justify-center gap-3">
-                <span id="progress-text" class="text-sm font-medium px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
-                    0/0 Completed
-                </span>
                 <button onclick="toggleAddMenu()" class="text-sm font-medium px-4 py-1.5 bg-indigo-500/10 text-indigo-500 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
                     + Manage Games
                 </button>
@@ -171,7 +183,7 @@
             const el = document.getElementById('game-list');
             Sortable.create(el, {
                 animation: 250,
-                delay: 100, // Short delay to distinguish between click and drag
+                delay: 100, 
                 delayOnTouchOnly: false,
                 touchStartThreshold: 5,
                 ghostClass: 'sortable-ghost',
@@ -180,10 +192,7 @@
                     isDragging = true;
                 },
                 onEnd: function() {
-                    // Use setTimeout to ensure the click event has a chance to be blocked
-                    // if it was triggered by the mouseup of a drag
                     setTimeout(() => { isDragging = false; }, 50);
-                    
                     const newOrder = Array.from(el.children).map(item => item.dataset.id);
                     reorderGames(newOrder);
                 }
@@ -288,7 +297,7 @@
         function updateProgress() {
             const count = state.playedIds.length;
             const total = state.games.length;
-            document.getElementById('progress-text').innerText = `${count}/${total} Completed`;
+            document.getElementById('progress-text').innerText = `${count}/${total}`;
         }
 
         function getFaviconUrl(gameUrl) {
