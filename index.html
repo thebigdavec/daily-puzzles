@@ -1,146 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Puzzle Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        :root {
-            color-scheme: light dark;
-            
-            --bg-color: light-dark(#f8fafc, #0f172a);
-            --card-bg: light-dark(#ffffff, #1e293b);
-            --text-primary: light-dark(#1e293b, #f1f5f9);
-            --text-secondary: light-dark(#64748b, #94a3b8);
-            --border-color: light-dark(#e2e8f0, #334155);
-            --accent-color: light-dark(#4f46e5, #818cf8);
-            
-            /* Played state colors */
-            --played-bg: light-dark(#f0fdf4, #064e3b50);
-            --played-border: light-dark(#10b981, #059669);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .game-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
-            cursor: pointer;
-            user-select: none;
-            touch-action: none; 
-        }
-
-        .game-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border-color: var(--accent-color);
-        }
-
-        .game-card.played {
-            background-color: var(--played-bg);
-            border-color: var(--played-border);
-        }
-
-        .game-card.played .game-title {
-            opacity: 0.85;
-            text-decoration: none;
-        }
-
-        .game-title {
-            color: var(--text-primary);
-            text-decoration: none;
-        }
-
-        .input-field {
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .sortable-ghost {
-            opacity: 0.4;
-            background: var(--accent-color) !important;
-            border-color: var(--accent-color) !important;
-        }
-
-        .sortable-drag {
-            opacity: 0.9;
-            transform: scale(1.02);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-        }
-
-        .game-logo {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            object-fit: contain;
-            background: light-dark(#f1f5f9, #334155);
-            pointer-events: none;
-        }
-
-        .drag-handle {
-            color: var(--text-secondary);
-            pointer-events: none;
-        }
-
-        /* Fixed Progress Badge */
-        #progress-text {
-            position: fixed;
-            top: 1.5rem;
-            right: 1.5rem;
-            z-index: 100;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-    </style>
+    <link rel="stylesheet" href="main.css">
 </head>
-<body class="min-h-screen px-10 py-6 md:px-8 md:py-8">
 
-    <!-- Sticky Progress Indicator -->
-    <span id="progress-text" class="text-xs font-bold px-3 py-1.5 bg-emerald-500/20 text-emerald-500 rounded-full border border-emerald-500/30">
+<body class="min-h-screen px-10 py-6 md:px-8 md:py-8">
+    <span id="progress-text"
+        class="text-xs font-bold px-3 py-1.5 bg-emerald-500/20 text-emerald-500 rounded-full border border-emerald-500/30">
         0/0
     </span>
 
     <div class="max-w-2xl mx-auto">
-        <!-- Header -->
         <header class="mb-8 text-center">
             <h1 class="text-3xl font-bold mb-2">Daily Puzzles</h1>
             <p id="current-date" style="color: var(--text-secondary)"></p>
-            
+
             <div class="mt-4 flex flex-wrap justify-center gap-3">
-                <button onclick="toggleAddMenu()" class="text-sm font-medium px-4 py-1.5 bg-indigo-500/10 text-indigo-500 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
-                    + Manage Games
+                <button onclick="openAddMenu()"
+                    class="text-sm font-medium px-4 py-1.5 bg-indigo-500/10 text-indigo-500 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                    + Add a Game
                 </button>
-                <button onclick="resetManual()" class="text-sm font-medium px-4 py-1.5 bg-slate-500/10 text-slate-500 rounded-full border border-slate-500/20 hover:bg-slate-500/20 transition-colors">
+                <button onclick="resetManual()"
+                    class="text-sm font-medium px-4 py-1.5 bg-slate-500/10 text-slate-500 rounded-full border border-slate-500/20 hover:bg-slate-500/20 transition-colors">
                     Reset All
                 </button>
             </div>
         </header>
 
         <!-- Manage Games Form -->
-        <div id="add-menu" class="hidden mb-8 p-6 rounded-2xl game-card shadow-xl">
-            <h3 class="text-lg font-bold mb-4">Add New Puzzle</h3>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="new-game-name" placeholder="Name (e.g. Sudoku)" class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
-                    <input type="url" id="new-game-url" placeholder="URL (https://...)" class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+        <div id="add-menu" class="add-menu" aria-hidden="true">
+            <div class="add-menu-panel p-6 rounded-2xl game-card shadow-xl">
+                <div class="flex gap-4 items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold">Add New Puzzle</h3>
+                    <button
+                        class="text-sm w-8 h-8 grid place-items-center bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20 transition-colors"
+                        onclick="closeAddMenu()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
-                <button onclick="addNewGame()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">
-                    Add to List
-                </button>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="new-game-name" placeholder="Name (e.g. Sudoku)"
+                            class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="url" id="new-game-url" placeholder="URL (https://...)"
+                            class="input-field p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div></div>
+                        <button onclick="addNewGame()"
+                            class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">
+                            Add to List
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Game List Container -->
         <div id="game-list" class="space-y-3">
             <!-- Items injected by JS -->
         </div>
@@ -150,209 +75,8 @@
         </footer>
     </div>
 
-    <!-- External Script for Drag and Drop -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-
-    <script>
-        const DEFAULT_GAMES = [
-            { id: 'strands', name: 'Strands', url: 'https://www.nytimes.com/games/strands' },
-            { id: 'connections', name: 'Connections', url: 'https://www.nytimes.com/games/connections' },
-            { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
-            { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
-            { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
-            { id: 'wordle', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle' },
-            { id: 'wordly', name: 'Wordly', url: 'https://wordly.org/uk' },
-            { id: 'tightrope', name: 'Tightrope', url: 'https://www.britannica.com/quiz/tightrope' },
-            { id: 'waffle', name: 'Waffle', url: 'https://wafflegame.net/daily' }
-        ];
-
-        let state = {
-            games: [],
-            playedIds: [],
-            lastResetDate: ''
-        };
-
-        let isDragging = false;
-
-        function init() {
-            loadData();
-            checkMidnightReset();
-            render();
-            updateDateDisplay();
-            
-            const el = document.getElementById('game-list');
-            Sortable.create(el, {
-                animation: 250,
-                delay: 100, 
-                delayOnTouchOnly: false,
-                touchStartThreshold: 5,
-                ghostClass: 'sortable-ghost',
-                dragClass: 'sortable-drag',
-                onStart: function() {
-                    isDragging = true;
-                },
-                onEnd: function() {
-                    setTimeout(() => { isDragging = false; }, 50);
-                    const newOrder = Array.from(el.children).map(item => item.dataset.id);
-                    reorderGames(newOrder);
-                }
-            });
-
-            setInterval(checkMidnightReset, 60000);
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem('puzzle_dashboard_v3');
-            if (saved) {
-                state = JSON.parse(saved);
-            } else {
-                state.games = [...DEFAULT_GAMES];
-                state.playedIds = [];
-                state.lastResetDate = getTodayString();
-                saveData();
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem('puzzle_dashboard_v3', JSON.stringify(state));
-        }
-
-        function getTodayString() {
-            return new Date().toDateString();
-        }
-
-        function updateDateDisplay() {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, options);
-        }
-
-        function checkMidnightReset() {
-            const today = getTodayString();
-            if (state.lastResetDate !== today) {
-                state.playedIds = [];
-                state.lastResetDate = today;
-                saveData();
-                render();
-            }
-        }
-
-        function toggleAddMenu() {
-            const menu = document.getElementById('add-menu');
-            menu.classList.toggle('hidden');
-        }
-
-        function addNewGame() {
-            const nameInput = document.getElementById('new-game-name');
-            const urlInput = document.getElementById('new-game-url');
-            
-            if (!nameInput.value || !urlInput.value) return;
-
-            const newGame = {
-                id: 'custom-' + Date.now(),
-                name: nameInput.value,
-                url: urlInput.value
-            };
-
-            state.games.push(newGame);
-            nameInput.value = '';
-            urlInput.value = '';
-            
-            saveData();
-            render();
-        }
-
-        function removeGame(event, id) {
-            event.stopPropagation(); 
-            state.games = state.games.filter(g => g.id !== id);
-            state.playedIds = state.playedIds.filter(pid => pid !== id);
-            saveData();
-            render();
-        }
-
-        function handleCardClick(id, url) {
-            if (isDragging) return;
-            
-            if (!state.playedIds.includes(id)) {
-                state.playedIds.push(id);
-                saveData();
-                render();
-            }
-            
-            window.open(url, '_blank');
-        }
-
-        function resetManual() {
-            state.playedIds = [];
-            saveData();
-            render();
-        }
-
-        function reorderGames(idList) {
-            const newGames = idList.map(id => state.games.find(g => g.id === id));
-            state.games = newGames;
-            saveData();
-            updateProgress();
-        }
-
-        function updateProgress() {
-            const count = state.playedIds.length;
-            const total = state.games.length;
-            document.getElementById('progress-text').innerText = `${count}/${total}`;
-        }
-
-        function getFaviconUrl(gameUrl) {
-            try {
-                const url = new URL(gameUrl);
-                return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function render() {
-            const container = document.getElementById('game-list');
-            container.innerHTML = '';
-
-            state.games.forEach(game => {
-                const isPlayed = state.playedIds.includes(game.id);
-                const favicon = getFaviconUrl(game.url);
-                
-                const card = document.createElement('div');
-                card.className = `game-card flex items-center justify-between p-4 rounded-xl ${isPlayed ? 'played' : ''}`;
-                card.dataset.id = game.id;
-                card.onclick = () => handleCardClick(game.id, game.url);
-
-                card.innerHTML = `
-                    <div class="flex items-center gap-4 flex-1 min-w-0 pointer-events-none">
-                        <div class="drag-handle opacity-30 p-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-                        </div>
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <img src="${favicon}" 
-                                 class="game-logo" 
-                                 alt="" 
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-                            <div class="hidden text-indigo-400" style="display:none">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                            </div>
-                            <span class="game-title text-base font-semibold truncate">
-                                ${game.name}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="removeGame(event, '${game.id}')" class="p-2 text-rose-500 opacity-20 hover:opacity-100 transition-opacity pointer-events-auto" title="Remove Game">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-
-            updateProgress();
-        }
-
-        window.onload = init;
-    </script>
+    <script src="script.js" defer></script>
 </body>
+
 </html>

@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  color-scheme: light dark;
+
+  --bg-color: light-dark(#f8fafc, #0f172a);
+  --card-bg: light-dark(#ffffff, #1e293b);
+  --text-primary: light-dark(#1e293b, #f1f5f9);
+  --text-secondary: light-dark(#64748b, #94a3b8);
+  --border-color: light-dark(#e2e8f0, #334155);
+  --accent-color: light-dark(#4f46e5, #818cf8);
+
+  /* Played state colors */
+  --played-bg: light-dark(#f0fdf4, #064e3b50);
+  --played-border: light-dark(#10b981, #059669);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.game-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  transition:
+    transform 0.5s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+.game-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color);
+}
+
+.game-card.played {
+  background-color: var(--played-bg);
+  border-color: var(--played-border);
+}
+
+.game-card.played .game-title {
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.game-title {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.input-field {
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+}
+
+.sortable-drag {
+  opacity: 0.9;
+  transform: scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.game-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: light-dark(#f1f5f9, #334155);
+  pointer-events: none;
+}
+
+.drag-handle {
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+/* Fixed Progress Badge */
+#progress-text {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.add-menu {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: clip;
+  opacity: 0;
+  pointer-events: none;
+  margin-bottom: 0;
+}
+
+.add-menu-panel {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .add-menu {
+    transition:
+      grid-template-rows 260ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      opacity 220ms ease,
+      margin-bottom 260ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .add-menu.is-open {
+    @starting-style {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-bottom: 0;
+    }
+  }
+}
+
+.add-menu.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+  margin-bottom: 2rem;
+}
