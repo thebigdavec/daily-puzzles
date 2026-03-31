@@ -48,7 +48,15 @@
         function loadData () {
             const saved = localStorage.getItem('puzzle_dashboard_v3');
             if (saved) {
-                state = JSON.parse(saved);
+                try {
+                    state = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse saved data, resetting to defaults', e);
+                    state.games = [...DEFAULT_GAMES];
+                    state.playedIds = [];
+                    state.lastResetDate = getTodayString();
+                    saveData();
+                }
             } else {
                 state.games = [...DEFAULT_GAMES];
                 state.playedIds = [];
@@ -100,6 +108,13 @@
 
             if (!nameInput.value || !urlInput.value) return;
 
+            try {
+                new URL(urlInput.value);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
             const newGame = {
                 id: 'custom-' + Date.now(),
                 name: nameInput.value,
@@ -126,12 +141,14 @@
         function handleCardClick (id, url) {
             if (isDragging) return;
 
-            if (!state.playedIds.includes(id)) {
-                state.playedIds.push(id);
-                saveData();
-                render();
-            }
-
+        function reorderGames (idList) {
+            const newGames = idList
+                .map(id => state.games.find(g => g.id === id))
+                .filter(Boolean);
+            state.games = newGames;
+            saveData();
+            updateProgress();
+        }
             window.open(url, '_blank');
         }
 
@@ -189,9 +206,7 @@
                             <div class="hidden text-indigo-400" style="display:none">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                             </div>
-                            <span class="game-title text-base font-semibold truncate">
-                                ${game.name}
-                            </span>
+                            <span class="game-title text-base font-semibold truncate"></span>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -200,6 +215,7 @@
                         </button>
                     </div>
                 `;
+                card.querySelector('.game-title').textContent = game.name;
                 container.appendChild(card);
             });
 
