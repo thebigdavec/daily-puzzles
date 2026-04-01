@@ -1,102 +1,449 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
   color-scheme: light dark;
 
-  --bg-color: light-dark(#f8fafc, #0f172a);
-  --card-bg: light-dark(#ffffff, #1e293b);
-  --text-primary: light-dark(#1e293b, #f1f5f9);
-  --text-secondary: light-dark(#64748b, #94a3b8);
-  --border-color: light-dark(#e2e8f0, #334155);
-  --accent-color: light-dark(#4f46e5, #818cf8);
-
-  /* Played state colors */
-  --played-bg: light-dark(#f0fdf4, #064e3b50);
-  --played-border: light-dark(#10b981, #059669);
+  --bg-color: light-dark(#f3f6ff, #09101f);
+  --bg-glow: light-dark(rgba(76, 110, 245, 0.18), rgba(56, 189, 248, 0.14));
+  --card-bg: light-dark(#ffffff, #101a2d);
+  --card-shadow: light-dark(
+    0 16px 36px rgba(28, 43, 80, 0.12),
+    0 18px 44px rgba(1, 6, 16, 0.55)
+  );
+  --text-primary: light-dark(#1b2438, #e2e8f0);
+  --text-secondary: light-dark(#5b6a87, #93a2bf);
+  --border-color: light-dark(#d5def2, #27344e);
+  --accent-color: light-dark(#3344dd, #60a5fa);
+  --accent-soft: light-dark(rgba(51, 68, 221, 0.12), rgba(96, 165, 250, 0.18));
+  --danger-color: light-dark(#d33658, #fb7185);
+  --danger-soft: light-dark(rgba(211, 54, 88, 0.12), rgba(251, 113, 133, 0.18));
+  --success-color: light-dark(#0f9a67, #34d399);
+  --success-soft: light-dark(
+    rgba(15, 154, 103, 0.14),
+    rgba(52, 211, 153, 0.18)
+  );
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-color);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body.app {
+  margin: 0;
+  min-height: 100vh;
+  padding: 2rem 1.25rem 2.5rem;
+  font-family: 'Manrope', sans-serif;
   color: var(--text-primary);
+  background:
+    radial-gradient(circle at 10% -10%, var(--bg-glow), transparent 42%),
+    radial-gradient(
+      circle at 90% -20%,
+      rgba(56, 189, 248, 0.1),
+      transparent 36%
+    ),
+    var(--bg-color);
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
 }
 
-.game-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
+.app-shell {
+  width: min(100%, 44rem);
+  margin-inline: auto;
+}
+
+.app-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.app-title {
+  margin: 0;
+  font-size: clamp(1.9rem, 5vw, 2.35rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.current-date {
+  margin: 0.4rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+}
+
+.actions {
+  margin-top: 1.1rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   transition:
-    transform 0.5s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-pill {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.btn-add {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent-color), transparent 72%);
+  color: var(--accent-color);
+}
+
+.btn-add:hover {
+  background: color-mix(in oklab, var(--accent-color), transparent 84%);
+}
+
+.btn-reset {
+  color: var(--text-secondary);
+  border-color: color-mix(in oklab, var(--text-secondary), transparent 74%);
+  background: color-mix(in oklab, var(--text-secondary), transparent 92%);
+}
+
+.btn-reset:hover {
+  background: color-mix(in oklab, var(--text-secondary), transparent 86%);
+}
+
+.btn-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+.btn-close {
+  color: var(--danger-color);
+  background: var(--danger-soft);
+}
+
+.btn-close:hover {
+  background: color-mix(in oklab, var(--danger-color), transparent 84%);
+}
+
+.btn-primary {
+  border-radius: 0.8rem;
+  padding: 0.76rem 1.05rem;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #3f55f0, #2f49df);
+  box-shadow: 0 14px 24px rgba(43, 69, 218, 0.28);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #3148e3, #263ed0);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.game-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.game-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.95rem;
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.35s ease,
     box-shadow 0.2s ease,
     background-color 0.2s ease,
+    border-color 0.2s ease,
     opacity 0.2s ease;
   cursor: pointer;
   user-select: none;
   touch-action: none;
 }
 
+.game-item {
+  padding: 0.85rem 1rem;
+}
+
 .game-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border-color: var(--accent-color);
+  border-color: color-mix(in oklab, var(--accent-color), transparent 68%);
+  box-shadow: 0 10px 24px rgba(30, 48, 100, 0.15);
 }
 
 .game-card.played {
-  background-color: var(--played-bg);
-  border-color: var(--played-border);
+  background-color: var(--success-soft);
+  border-color: color-mix(in oklab, var(--success-color), transparent 66%);
 }
 
 .game-card.played .game-title {
-  opacity: 0.85;
-  text-decoration: none;
+  opacity: 0.82;
+}
+
+.game-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.game-left {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.game-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
 }
 
 .game-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-primary);
-  text-decoration: none;
-}
-
-.input-field {
-  background-color: var(--bg-color);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.sortable-ghost {
-  opacity: 0.4;
-  background: var(--accent-color) !important;
-  border-color: var(--accent-color) !important;
-}
-
-.sortable-drag {
-  opacity: 0.9;
-  transform: scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 .game-logo {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.35rem;
   object-fit: contain;
-  background: light-dark(#f1f5f9, #334155);
+  background: light-dark(#f0f3ff, #2a3854);
   pointer-events: none;
+}
+
+.game-icon-fallback {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: none;
+  place-items: center;
+  color: var(--accent-color);
+}
+
+.game-actions {
+  display: flex;
+  align-items: center;
+  min-width: 9.2rem;
+  justify-content: flex-end;
+}
+
+.remove-confirm-wrap {
+  position: relative;
+  width: 9rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.remove-confirm-copy {
+  position: absolute;
+  right: 0.35rem;
+  max-width: 5rem;
+  text-align: right;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+  color: color-mix(in oklab, var(--danger-color), transparent 18%);
+  opacity: 0;
+  transform: translateX(0.5rem);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.remove-confirm-wrap.is-confirming .remove-confirm-copy {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.remove-btn {
+  border: 0;
+  background: transparent;
+  color: var(--danger-color);
+  opacity: 0.22;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 0.45rem;
+  display: inline-grid;
+  place-items: center;
+  pointer-events: auto;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.remove-btn:hover {
+  opacity: 1;
+  background: var(--danger-soft);
+}
+
+.remove-btn.is-confirming {
+  opacity: 1;
+  background: var(--danger-soft);
+  color: color-mix(in oklab, var(--danger-color), white 10%);
+  transform: translateX(-5.55rem);
 }
 
 .drag-handle {
   color: var(--text-secondary);
+  opacity: 0.38;
   pointer-events: none;
+  display: inline-grid;
+  place-items: center;
 }
 
-/* Fixed Progress Badge */
-#progress-text {
+.input-field {
+  width: 100%;
+  border-radius: 0.78rem;
+  border: 1px solid var(--border-color);
+  background: light-dark(#f8faff, #0f192c);
+  color: var(--text-primary);
+  padding: 0.78rem 0.86rem;
+  font: inherit;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: color-mix(in oklab, var(--accent-color), transparent 56%);
+  box-shadow: 0 0 0 3px
+    color-mix(in oklab, var(--accent-color), transparent 82%);
+}
+
+.progress-badge {
   position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: 1rem;
+  right: 1rem;
   z-index: 100;
+  padding: 0.34rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--success-color), transparent 70%);
+  background: color-mix(in oklab, var(--success-color), transparent 88%);
+  color: var(--success-color);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.app-footer {
+  margin-top: 2.6rem;
+  text-align: center;
+  font-size: 0.74rem;
+  color: color-mix(in oklab, var(--text-secondary), transparent 15%);
+  opacity: 0.78;
+}
+
+.recently-removed {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid color-mix(in oklab, var(--text-secondary), transparent 75%);
+  background: color-mix(in oklab, var(--card-bg), var(--bg-color) 20%);
+}
+
+.recently-removed-header {
+  margin-bottom: 0.7rem;
+}
+
+.recently-removed-title {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.recently-removed-subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+.recently-removed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.recently-removed-item {
+  border: 1px solid color-mix(in oklab, var(--text-secondary), transparent 82%);
+  border-radius: 0.75rem;
+  background: color-mix(in oklab, var(--card-bg), transparent 8%);
+  padding: 0.7rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recently-removed-info {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.recently-removed-game {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.recently-removed-link {
+  min-width: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.recently-removed-link:hover {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+.btn-restore {
+  border-color: color-mix(in oklab, var(--accent-color), transparent 72%);
+  background: color-mix(in oklab, var(--accent-color), transparent 90%);
+  color: var(--accent-color);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.btn-restore:hover {
+  background: color-mix(in oklab, var(--accent-color), transparent 84%);
 }
 
 .add-menu {
@@ -106,11 +453,90 @@ body {
   opacity: 0;
   pointer-events: none;
   margin-bottom: 0;
+
+  .add-menu-panel {
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  &.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    pointer-events: auto;
+    margin-bottom: 1.5rem;
+
+    .add-menu-panel {
+      padding: 1.25rem;
+    }
+  }
 }
 
-.add-menu-panel {
-  min-height: 0;
-  overflow: hidden;
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.menu-content {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1fr;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-actions .btn-primary {
+  width: 100%;
+}
+
+.sortable-ghost {
+  opacity: 0.42;
+  background: color-mix(
+    in oklab,
+    var(--accent-color),
+    transparent 84%
+  ) !important;
+  border-color: color-mix(
+    in oklab,
+    var(--accent-color),
+    transparent 72%
+  ) !important;
+}
+
+.sortable-drag {
+  opacity: 0.95;
+  transform: scale(1.012);
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.25);
+}
+
+@media (min-width: 700px) {
+  body.app {
+    padding-inline: 2rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-actions .btn-primary {
+    width: min(16rem, 100%);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -128,11 +554,15 @@ body {
       margin-bottom: 0;
     }
   }
-}
 
-.add-menu.is-open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  pointer-events: auto;
-  margin-bottom: 2rem;
+  .recently-removed-item {
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .recently-removed-item:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--accent-color), transparent 75%);
+  }
 }
