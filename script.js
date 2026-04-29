@@ -1,6 +1,5 @@
 const DEFAULT_GAMES = [
     { id: 'strands', name: 'Strands', url: 'https://www.nytimes.com/games/strands' },
-    { id: 'connections', name: 'Connections', url: 'https://www.nytimes.com/games/connections' },
     { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
     { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
     { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
