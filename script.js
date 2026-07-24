@@ -428,8 +428,11 @@ function permanentlyRemoveGame(event, id) {
     scheduleRemovedGamesCleanup();
 }
 
-function handleCardClick(id, url) {
-    if (isDragging) {
+function handleCardClick(event, id, url) {
+    // The whole card is a play target, but its controls must never fall
+    // through to it. This extra guard is important on touch devices, where a
+    // tap can be delivered after a pointer or drag event has already run.
+    if (isDragging || event.target.closest('button, a, input, select, textarea, label')) {
         return;
     }
 
@@ -497,7 +500,7 @@ function render() {
         const card = document.createElement('div');
         card.className = `game-card game-item ${isPlayed ? 'played' : ''}`;
         card.dataset.id = game.id;
-        card.onclick = () => handleCardClick(game.id, game.url);
+        card.onclick = (event) => handleCardClick(event, game.id, game.url);
 
         card.innerHTML = `
             <div class="game-main">
@@ -521,7 +524,7 @@ function render() {
                 <div class="game-actions">
                     <div class="remove-confirm-wrap ${isConfirming ? 'is-confirming' : ''}">
                         <button type="button" class="remove-confirm-copy" aria-label="Cancel removing game">Click X again to confirm</button>
-                        <button class="remove-btn ${isConfirming ? 'is-confirming' : ''}" title="${isConfirming ? 'Click again to remove' : 'Remove Game'}" aria-label="${isConfirming ? 'Confirm remove game' : 'Remove game'}">
+                        <button type="button" class="remove-btn ${isConfirming ? 'is-confirming' : ''}" title="${isConfirming ? 'Click again to remove' : 'Remove Game'}" aria-label="${isConfirming ? 'Confirm remove game' : 'Remove game'}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -535,7 +538,14 @@ function render() {
         const cancelRemoveButton = card.querySelector('.remove-confirm-copy');
         cancelRemoveButton.setAttribute('aria-label', `Cancel removing ${game.name}`);
         cancelRemoveButton.onclick = cancelRemoveConfirmation;
-        card.querySelector('.remove-btn').onclick = (event) => removeGame(event, game.id);
+        const removeButton = card.querySelector('.remove-btn');
+        // Keep Sortable's card-wide touch handling away from the remove
+        // control. The click handler below still performs the confirmation.
+        ['pointerdown', 'touchstart'].forEach((eventName) => {
+            removeButton.addEventListener(eventName, (event) => event.stopPropagation());
+            cancelRemoveButton.addEventListener(eventName, (event) => event.stopPropagation());
+        });
+        removeButton.onclick = (event) => removeGame(event, game.id);
         container.appendChild(card);
     });
 
