@@ -13,6 +13,7 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Supports drag-and-drop reordering, including on touch devices.
 - Resets played games manually or automatically at a configurable time.
 - Lets you use either the device time zone or a specific IANA time zone, such as `Europe/London`.
+- Lets you restore the original curated game list from **Settings** whenever you want a clean start.
 - Keeps removed games in a **Recently Removed** area for seven days, where they can be restored or permanently trashed.
 
 ## Run locally

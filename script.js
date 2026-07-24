@@ -59,24 +59,26 @@ function init() {
     scheduleRemovedGamesCleanup();
 
     const list = document.getElementById('game-list');
-    Sortable.create(list, {
-        animation: 250,
-        delay: 100,
-        delayOnTouchOnly: false,
-        touchStartThreshold: 5,
-        ghostClass: 'sortable-ghost',
-        dragClass: 'sortable-drag',
-        onStart() {
-            isDragging = true;
-        },
-        onEnd() {
-            setTimeout(() => {
-                isDragging = false;
-            }, 50);
-            const newOrder = Array.from(list.children).map((item) => item.dataset.id);
-            reorderGames(newOrder);
-        }
-    });
+    if (window.Sortable) {
+        Sortable.create(list, {
+            animation: 250,
+            delay: 100,
+            delayOnTouchOnly: false,
+            touchStartThreshold: 5,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onStart() {
+                isDragging = true;
+            },
+            onEnd() {
+                setTimeout(() => {
+                    isDragging = false;
+                }, 50);
+                const newOrder = Array.from(list.children).map((item) => item.dataset.id);
+                reorderGames(newOrder);
+            }
+        });
+    }
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
@@ -309,6 +311,22 @@ function saveSettings() {
     updateDateDisplay();
     updateResetSummary();
     scheduleResetCheck();
+}
+
+function restoreDefaultGames() {
+    if (!window.confirm('Restore the original game list? This removes custom games and clears today\'s progress.')) {
+        return;
+    }
+
+    state.games = DEFAULT_GAMES.map((game) => ({ ...game }));
+    state.playedIds = [];
+    state.removedGames = [];
+    state.lastResetDate = getPuzzleDay(undefined, state);
+    clearRemoveConfirmation();
+    saveData();
+    closeSettings();
+    render();
+    scheduleRemovedGamesCleanup();
 }
 
 function openAddMenu() {
@@ -638,6 +656,7 @@ Object.assign(window, {
     openAddMenu,
     openSettings,
     resetManual,
+    restoreDefaultGames,
     saveSettings
 });
 
