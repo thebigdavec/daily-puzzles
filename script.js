@@ -39,6 +39,16 @@ let removeConfirmTimer = null;
 let resetTimer = null;
 let removedGamesTimer = null;
 
+function restoreDefaultGamesIfEmpty() {
+    if (state.games.length) {
+        return false;
+    }
+
+    state.games = DEFAULT_GAMES.map((game) => ({ ...game }));
+    state.playedIds = [];
+    return true;
+}
+
 function init() {
     loadData();
     checkDailyReset();
@@ -84,8 +94,7 @@ function init() {
 function loadData() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
-        state.games = [...DEFAULT_GAMES];
-        state.playedIds = [];
+        restoreDefaultGamesIfEmpty();
         state.removedGames = [];
         state.lastResetDate = getPuzzleDay(undefined, state);
         saveData();
@@ -103,10 +112,10 @@ function loadData() {
         const savedDate = typeof parsed.lastResetDate === 'string' ? parsed.lastResetDate : '';
 
         state.games = savedGames.map(normalizeGame).filter(Boolean);
-        if (!state.games.length) {
-            state.games = [...DEFAULT_GAMES];
-        }
-        state.playedIds = savedPlayedIds.filter((id) => state.games.some((game) => game.id === id));
+        const restoredDefaultGames = restoreDefaultGamesIfEmpty();
+        state.playedIds = restoredDefaultGames
+            ? []
+            : savedPlayedIds.filter((id) => state.games.some((game) => game.id === id));
         const now = Date.now();
         state.removedGames = savedRemovedGames
             .map((game) => normalizeRemovedGame(game, now))
@@ -117,8 +126,8 @@ function loadData() {
         saveData();
     } catch (error) {
         console.error('Failed to parse saved data. Resetting to defaults.', error);
-        state.games = [...DEFAULT_GAMES];
-        state.playedIds = [];
+        state.games = [];
+        restoreDefaultGamesIfEmpty();
         state.removedGames = [];
         state.lastResetDate = getPuzzleDay(undefined, state);
         saveData();
@@ -398,6 +407,7 @@ function removeGameById(id) {
     state.games = state.games.filter((game) => game.id !== id);
     state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
     state.removedGames = [{ ...gameToRemove, removedAt: Date.now() }, ...state.removedGames.filter((game) => game.id !== id)];
+    restoreDefaultGamesIfEmpty();
 
     clearRemoveConfirmation();
     saveData();
