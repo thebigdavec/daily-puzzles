@@ -7,6 +7,7 @@
     <title>Daily Puzzle Dashboard</title>
     <meta name="description"
         content="A daily puzzle dashboard to save game links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="main.css">
 </head>
 
@@ -21,10 +22,23 @@
             <p id="current-date" class="current-date"></p>
 
             <div class="actions">
-                <button onclick="openAddMenu()" class="btn btn-pill btn-add">
-                    + Add a Game
+                <button type="button" onclick="openAddMenu()" class="btn btn-pill btn-add">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Add a Game
                 </button>
-                <button onclick="resetManual()" class="btn btn-pill btn-reset">
+                <button type="button" onclick="openSettings()" class="btn btn-pill btn-settings">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path>
+                        <circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle>
+                    </svg>
+                    Settings
+                </button>
+                <button type="button" onclick="resetManual()" class="btn btn-pill btn-reset">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>
+                    </svg>
                     Reset All
                 </button>
             </div>
@@ -60,6 +74,33 @@
             </div>
         </div>
 
+        <div id="settings-menu" class="add-menu" aria-hidden="true">
+            <div class="add-menu-panel game-card">
+                <div class="menu-header">
+                    <div>
+                        <h3 class="menu-title">Settings</h3>
+                        <p class="menu-description">Choose when a new puzzle day begins.</p>
+                    </div>
+                    <button class="remove-btn" type="button" onclick="closeSettings()" aria-label="Close settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="menu-content">
+                    <label class="field-label" for="reset-time">Reset time</label>
+                    <input id="reset-time" class="input-field" type="time" value="00:00" required>
+                    <label class="field-label" for="reset-time-zone">Time zone</label>
+                    <select id="reset-time-zone" class="input-field"></select>
+                    <div class="form-actions">
+                        <button onclick="saveSettings()" class="btn btn-primary btn-block">Save settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="game-list" class="game-list">
             <!-- Items injected by JS -->
         </div>
@@ -67,18 +108,18 @@
         <section id="recently-removed-section" class="recently-removed" hidden>
             <div class="recently-removed-header">
                 <h2 class="recently-removed-title">Recently Removed</h2>
-                <p class="recently-removed-subtitle">Restore a game back to your list</p>
+                <p class="recently-removed-subtitle">Restore a game within 7 days, or permanently trash it now.</p>
             </div>
             <ul id="recently-removed-list" class="recently-removed-list"></ul>
         </section>
 
         <footer class="app-footer">
-            <p>Click any card to play • Drag anywhere to reorder • Resets daily at 12am</p>
+            <p id="reset-summary">Click any card to play • Drag anywhere to reorder</p>
         </footer>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 
 </html>

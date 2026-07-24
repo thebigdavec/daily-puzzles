@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset schedule tests</title>
+</head>
+<body>
+    <p id="result">Running reset schedule tests…</p>
+    <script type="module">
+        import { runResetScheduleTests } from './reset-schedule.test.js';
+
+        try {
+            runResetScheduleTests();
+            document.getElementById('result').textContent = 'All reset schedule tests passed.';
+        } catch (error) {
+            document.getElementById('result').textContent = `Test failure: ${error.message}`;
+            throw error;
+        }
+    </script>
+</body>
+</html>

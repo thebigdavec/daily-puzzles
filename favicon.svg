@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Daily Puzzles</title>
+  <rect width="64" height="64" rx="16" fill="#172554"/>
+  <path d="M19 23.5c0-7.12 5.78-12.5 13-12.5s13 5.18 13 12.1c0 8.18-7.25 10.18-10.04 14.12-1.04 1.47-1.46 3.04-1.46 4.78" fill="none" stroke="#f8fafc" stroke-linecap="round" stroke-linejoin="round" stroke-width="6"/>
+  <path d="M24 49h16" stroke="#f8fafc" stroke-linecap="round" stroke-width="3"/>
+  <path d="M27 49a5 5 0 0 1 10 0" fill="#fbbf24"/>
+  <path d="M27 49a5 5 0 0 1 10 0" fill="none" stroke="#fcd34d" stroke-linecap="round" stroke-width="2"/>
+  <path d="M24 45v-2M28 43l-1.5-2.6M36 43l1.5-2.6M40 45v-2" stroke="#fbbf24" stroke-linecap="round" stroke-width="2"/>
+</svg>
