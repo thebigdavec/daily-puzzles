@@ -23,6 +23,7 @@ const STORAGE_KEY = 'puzzle_dashboard_v3';
 const REMOVE_CONFIRM_TIMEOUT_MS = 3500;
 const REMOVED_GAME_RETENTION_DAYS = 7;
 const REMOVED_GAME_RETENTION_MS = REMOVED_GAME_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const MAX_IMPORT_FILE_SIZE_BYTES = 1024 * 1024;
 
 let state = {
     games: [],
@@ -57,6 +58,8 @@ function init() {
     updateResetSummary();
     scheduleResetCheck();
     scheduleRemovedGamesCleanup();
+
+    document.getElementById('import-games-file').addEventListener('change', handleImportFileChange);
 
     const list = document.getElementById('game-list');
     if (window.Sortable) {
@@ -147,6 +150,20 @@ function normalizeGame(game) {
 
     const url = getSafeHttpUrl(game.url);
     return url ? { id: game.id, name: game.name.trim(), url } : null;
+}
+
+function normalizeImportedGames(games) {
+    const ids = new Set();
+
+    return games
+        .map(normalizeGame)
+        .filter((game) => {
+            if (!game || ids.has(game.id)) {
+                return false;
+            }
+            ids.add(game.id);
+            return true;
+        });
 }
 
 function normalizeRemovedGame(game, now = Date.now()) {
@@ -249,9 +266,9 @@ function scheduleResetCheck() {
         clearTimeout(resetTimer);
     }
 
-    const now = Temporal.Now.instant();
+    const now = new Date();
     const nextReset = getNextResetInstant(now, state);
-    const delay = Number(nextReset.epochMilliseconds - now.epochMilliseconds) + 250;
+    const delay = nextReset.getTime() - now.getTime() + 250;
     resetTimer = setTimeout(() => {
         checkDailyReset();
         scheduleResetCheck();
@@ -376,6 +393,72 @@ function addNewGame() {
     closeAddMenu();
     saveData();
     render();
+}
+
+function exportCustomGames() {
+    const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        games: state.games.map(({ id, name, url }) => ({ id, name, url }))
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = downloadUrl;
+    link.download = `daily-puzzles-games-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+}
+
+function importCustomGames() {
+    const input = document.getElementById('import-games-file');
+    input.value = '';
+    input.click();
+}
+
+function handleImportFileChange(event) {
+    const [file] = event.target.files;
+    if (!file) {
+        return;
+    }
+
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+        alert('That backup file is too large. Please choose a Daily Puzzles backup smaller than 1 MB.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => alert('The selected backup file could not be read.');
+    reader.onload = () => {
+        try {
+            const backup = JSON.parse(reader.result);
+            const games = Array.isArray(backup.games) ? normalizeImportedGames(backup.games) : [];
+
+            if (!games.length) {
+                throw new Error('No valid games');
+            }
+
+            if (!window.confirm('Replace your current game list with this backup? Today\'s progress and recently removed games will be cleared.')) {
+                return;
+            }
+
+            state.games = games;
+            state.playedIds = [];
+            state.removedGames = [];
+            state.lastResetDate = getPuzzleDay(undefined, state);
+            clearRemoveConfirmation();
+            saveData();
+            render();
+            scheduleRemovedGamesCleanup();
+        } catch (error) {
+            console.error('Failed to import games backup.', error);
+            alert('That file is not a valid Daily Puzzles backup.');
+        }
+    };
+    reader.readAsText(file);
 }
 
 function removeGame(event, id) {
@@ -653,6 +736,8 @@ Object.assign(window, {
     addNewGame,
     closeAddMenu,
     closeSettings,
+    exportCustomGames,
+    importCustomGames,
     openAddMenu,
     openSettings,
     resetManual,

@@ -36,7 +36,17 @@ function testUsesCivilTimeAcrossDaylightSaving() {
 
     assertEqual(getPuzzleDay('2026-03-29T02:30:00Z', settings), '2026-03-28', 'Before BST reset');
     assertEqual(getPuzzleDay('2026-03-29T03:00:00Z', settings), '2026-03-29', 'At BST reset');
-    assertEqual(getNextResetInstant('2026-03-29T00:00:00Z', settings).toString(), '2026-03-29T03:00:00Z', 'BST reset instant');
+    assertEqual(getNextResetInstant('2026-03-29T00:00:00Z', settings).toISOString(), '2026-03-29T03:00:00.000Z', 'BST reset instant');
+}
+
+function testUsesFirstOccurrenceWhenClocksGoBack() {
+    const settings = { timeZone: 'Europe/London', resetTime: '01:30' };
+
+    assertEqual(
+        getNextResetInstant('2026-10-25T00:00:00Z', settings).toISOString(),
+        '2026-10-25T00:30:00.000Z',
+        'First reset instant when clocks go back'
+    );
 }
 
 function testDefaultsInvalidSettings() {
@@ -50,6 +60,7 @@ const tests = [
     ['uses the prior calendar date before a configured reset time', testUsesPriorDateBeforeResetTime],
     ['calculates puzzle days independently in distant time zones', testUsesDistantTimeZones],
     ['uses civil time across the UK daylight-saving transition', testUsesCivilTimeAcrossDaylightSaving],
+    ['uses the first occurrence when clocks go back', testUsesFirstOccurrenceWhenClocksGoBack],
     ['defaults invalid or legacy settings to midnight in the device timezone', testDefaultsInvalidSettings]
 ];
 

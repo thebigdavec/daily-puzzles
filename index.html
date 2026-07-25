@@ -23,21 +23,26 @@
 
             <div class="actions">
                 <button type="button" onclick="openAddMenu()" class="btn btn-pill btn-add">
-                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 5v14M5 12h14"></path>
                     </svg>
                     Add a Game
                 </button>
                 <button type="button" onclick="openSettings()" class="btn btn-pill btn-settings">
-                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path>
-                        <circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle>
+                        <circle cx="16" cy="7" r="2"></circle>
+                        <circle cx="8" cy="17" r="2"></circle>
                     </svg>
                     Settings
                 </button>
                 <button type="button" onclick="resetManual()" class="btn btn-pill btn-reset">
-                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                        <path d="M3 4v5h5"></path>
                     </svg>
                     Reset All
                 </button>
@@ -77,10 +82,7 @@
         <div id="settings-menu" class="add-menu" aria-hidden="true">
             <div class="add-menu-panel game-card">
                 <div class="menu-header">
-                    <div>
-                        <h3 class="menu-title">Settings</h3>
-                        <p class="menu-description">Choose when a new puzzle day begins.</p>
-                    </div>
+                    <h3 class="menu-title">Settings</h3>
                     <button class="remove-btn" type="button" onclick="closeSettings()" aria-label="Close settings">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -90,19 +92,50 @@
                     </button>
                 </div>
                 <div class="menu-content">
-                    <label class="field-label" for="reset-time">Reset time</label>
-                    <input id="reset-time" class="input-field" type="time" value="00:00" required>
-                    <label class="field-label" for="reset-time-zone">Time zone</label>
-                    <select id="reset-time-zone" class="input-field"></select>
+
+                    <div class="settings-defaults">
+                        <h4 class="settings-defaults-title">Daily reset</h4>
+                        <div class="settings-defaults-reset-section">
+                            <p class="settings-defaults-copy">Choose when a new puzzle day begins.</p>
+                            <div>
+                                <h5>Reset Time</h5>
+                                <label class="field-label" for="reset-time">Choose time</label>
+                                <input id="reset-time" class="input-field" type="time" value="00:00" required>
+                            </div>
+                            <div>
+                                <h5>Time Zone</h5>
+                                <label class="field-label" for="reset-time-zone">Choose time zone</label>
+                                <select id="reset-time-zone" class="input-field"></select>
+                            </div>
+                        </div>
+                        <hr>
+                        <h4 class="settings-defaults-title">Game list</h4>
+                        <div class="settings-defaults-list-section">
+                            <div>
+                                <h5>Restore Default Games</h5>
+                                <p class="settings-defaults-copy">Restore the original puzzle list and clear today’s
+                                    progress.</p>
+                                <button type="button" onclick="restoreDefaultGames()"
+                                    class="btn btn-secondary btn-block">Restore defaults</button>
+                            </div>
+                            <div>
+                                <h5>Import Games</h5>
+                                <p class="settings-defaults-copy">Import a puzzle list from a file and clear today’s
+                                    progress.</p>
+                                <button type="button" onclick="importCustomGames()"
+                                    class="btn btn-secondary btn-block">Import</button>
+                            </div>
+                            <div>
+                                <h5>Export Games</h5>
+                                <p class="settings-defaults-copy">Export your current puzzle list to a file for
+                                    safe-keeping.</p>
+                                <button type="button" onclick="exportCustomGames()"
+                                    class="btn btn-secondary btn-block">Export</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-actions">
                         <button onclick="saveSettings()" class="btn btn-primary btn-block">Save settings</button>
-                    </div>
-                    <div class="settings-defaults">
-                        <div>
-                            <h4 class="settings-defaults-title">Game list</h4>
-                            <p class="settings-defaults-copy">Restore the original puzzle list and clear today’s progress.</p>
-                        </div>
-                        <button type="button" onclick="restoreDefaultGames()" class="btn btn-secondary btn-block">Restore default games</button>
                     </div>
                 </div>
             </div>
@@ -119,6 +152,8 @@
             </div>
             <ul id="recently-removed-list" class="recently-removed-list"></ul>
         </section>
+
+        <input id="import-games-file" type="file" accept="application/json,.json" hidden>
 
         <footer class="app-footer">
             <p id="reset-summary">Click any card to play • Drag anywhere to reorder</p>

@@ -369,6 +369,20 @@ body.app {
   outline: none;
 }
 
+select.input-field {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.08rem) 50%,
+    calc(100% - 0.78rem) 50%;
+  background-size: 0.32rem 0.32rem;
+  background-repeat: no-repeat;
+}
+
 .input-field:focus {
   border-color: color-mix(in oklab, var(--accent-color), transparent 56%);
   box-shadow: 0 0 0 3px
@@ -594,9 +608,48 @@ body.app {
   border-top: 1px solid var(--border-color);
 }
 
+hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
 .settings-defaults-title {
   margin: 0;
   font-size: 0.9rem;
+}
+
+.settings-defaults-reset-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.settings-defaults-reset-section > p {
+  margin-block-end: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.settings-defaults-reset-section > div,
+.settings-defaults-list-section > div {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.35rem;
+}
+
+.settings-defaults-reset-section h5,
+.settings-defaults-list-section h5 {
+  margin: 0;
+}
+
+.settings-defaults-list-section p {
+  margin-block-end: 0.5rem;
+}
+
+.settings-defaults-list-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .settings-defaults-copy {
