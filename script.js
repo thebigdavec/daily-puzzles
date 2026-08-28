@@ -20,10 +20,10 @@ const DEFAULT_GAMES = [
 ];
 
 const STORAGE_KEY = 'puzzle_dashboard_v3';
-const REMOVE_CONFIRM_TIMEOUT_MS = 3500;
 const REMOVED_GAME_RETENTION_DAYS = 7;
 const REMOVED_GAME_RETENTION_MS = REMOVED_GAME_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const MAX_IMPORT_FILE_SIZE_BYTES = 1024 * 1024;
+const ACTION_MENU_EXIT_TRANSITION_MS = 90;
 
 let state = {
     games: [],
@@ -35,10 +35,12 @@ let state = {
 };
 
 let isDragging = false;
-let pendingRemoveId = null;
-let removeConfirmTimer = null;
 let resetTimer = null;
 let removedGamesTimer = null;
+let mutedGamesTimer = null;
+let editingGameId = null;
+let pendingPauseDays = 0;
+let openActionMenuId = null;
 
 function restoreDefaultGamesIfEmpty() {
     if (state.games.length) {
@@ -58,8 +60,32 @@ function init() {
     updateResetSummary();
     scheduleResetCheck();
     scheduleRemovedGamesCleanup();
+    scheduleMutedGamesRefresh();
 
     document.getElementById('import-games-file').addEventListener('change', handleImportFileChange);
+    document.querySelectorAll('.pause-option').forEach((button) => {
+        button.addEventListener('click', () => selectPauseDays(Number(button.dataset.pauseDays)));
+    });
+    document.getElementById('edit-game-return-date').addEventListener('change', () => {
+        pendingPauseDays = null;
+        updatePauseOptions();
+    });
+    ['edit-puzzle-dialog', 'mute-puzzle-dialog', 'remove-puzzle-dialog'].forEach((dialogId) => {
+        const dialog = document.getElementById(dialogId);
+        dialog.addEventListener('close', () => {
+            editingGameId = null;
+        });
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+    });
+    document.addEventListener('click', (event) => {
+        if (openActionMenuId && !event.target.closest('.action-menu-wrap')) {
+            closePuzzleActionMenu();
+        }
+    });
 
     const list = document.getElementById('game-list');
     if (window.Sortable) {
@@ -87,11 +113,12 @@ function init() {
         if (!document.hidden) {
             checkDailyReset();
             scheduleResetCheck();
-            if (removeExpiredRemovedGames()) {
+            if (removeExpiredRemovedGames() || clearExpiredGameMutes()) {
                 saveData();
             }
             render();
             scheduleRemovedGamesCleanup();
+            scheduleMutedGamesRefresh();
         }
     });
 }
@@ -117,6 +144,7 @@ function loadData() {
         const savedDate = typeof parsed.lastResetDate === 'string' ? parsed.lastResetDate : '';
 
         state.games = savedGames.map(normalizeGame).filter(Boolean);
+        clearExpiredGameMutes();
         const restoredDefaultGames = restoreDefaultGamesIfEmpty();
         state.playedIds = restoredDefaultGames
             ? []
@@ -149,7 +177,10 @@ function normalizeGame(game) {
     }
 
     const url = getSafeHttpUrl(game.url);
-    return url ? { id: game.id, name: game.name.trim(), url } : null;
+    const mutedUntil = typeof game.mutedUntil === 'number' && Number.isFinite(game.mutedUntil)
+        ? game.mutedUntil
+        : null;
+    return url ? { id: game.id, name: game.name.trim(), url, mutedUntil } : null;
 }
 
 function normalizeImportedGames(games) {
@@ -226,6 +257,44 @@ function scheduleRemovedGamesCleanup() {
     }, Math.max(0, nextRefreshAt - Date.now()) + 50);
 }
 
+function isGameMuted(game, now = Date.now()) {
+    return typeof game.mutedUntil === 'number' && game.mutedUntil > now;
+}
+
+function clearExpiredGameMutes(now = Date.now()) {
+    let didClearMute = false;
+    state.games.forEach((game) => {
+        if (game.mutedUntil && game.mutedUntil <= now) {
+            game.mutedUntil = null;
+            didClearMute = true;
+        }
+    });
+    return didClearMute;
+}
+
+function scheduleMutedGamesRefresh() {
+    if (mutedGamesTimer) {
+        clearTimeout(mutedGamesTimer);
+    }
+
+    const nextReturnAt = state.games.reduce((earliest, game) => {
+        return isGameMuted(game) ? Math.min(earliest, game.mutedUntil) : earliest;
+    }, Infinity);
+
+    if (!Number.isFinite(nextReturnAt)) {
+        mutedGamesTimer = null;
+        return;
+    }
+
+    mutedGamesTimer = setTimeout(() => {
+        if (clearExpiredGameMutes()) {
+            saveData();
+        }
+        render();
+        scheduleMutedGamesRefresh();
+    }, Math.max(0, nextReturnAt - Date.now()) + 50);
+}
+
 function getSafeHttpUrl(value) {
     try {
         const url = new URL(value);
@@ -280,7 +349,7 @@ function updateResetSummary() {
         ? `your device timezone (${getDeviceTimeZone()})`
         : state.timeZone;
     document.getElementById('reset-summary').innerText =
-        `Click any card to play • Drag anywhere to reorder • Resets daily at ${state.resetTime} (${timeZone})`;
+        `Open any puzzle • Drag anywhere to reorder • Resets daily at ${state.resetTime} (${timeZone})`;
 }
 
 function populateSettings() {
@@ -331,7 +400,7 @@ function saveSettings() {
 }
 
 function restoreDefaultGames() {
-    if (!window.confirm('Restore the original game list? This removes custom games and clears today\'s progress.')) {
+    if (!window.confirm('Restore the original puzzle list? This removes custom puzzles and clears today\'s progress.')) {
         return;
     }
 
@@ -339,11 +408,11 @@ function restoreDefaultGames() {
     state.playedIds = [];
     state.removedGames = [];
     state.lastResetDate = getPuzzleDay(undefined, state);
-    clearRemoveConfirmation();
     saveData();
     closeSettings();
     render();
     scheduleRemovedGamesCleanup();
+    scheduleMutedGamesRefresh();
 }
 
 function openAddMenu() {
@@ -362,6 +431,272 @@ function closeAddMenu() {
     }
     menu.classList.remove('is-open');
     menu.setAttribute('aria-hidden', 'true');
+}
+
+function getGameById(id) {
+    return state.games.find((game) => game.id === id);
+}
+
+function prefersReducedMotion() {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+function canUseViewTransitions() {
+    return typeof document.startViewTransition === 'function' && !prefersReducedMotion();
+}
+
+function togglePuzzleActionMenu(event, id) {
+    event.stopPropagation();
+    if (openActionMenuId === id) {
+        closePuzzleActionMenu();
+        return;
+    }
+
+    if (openActionMenuId) {
+        closePuzzleActionMenu(() => {
+            openActionMenuId = id;
+            render();
+        });
+        return;
+    }
+
+    openActionMenuId = id;
+    render();
+}
+
+function openPuzzleAction(event, id, action) {
+    event.stopPropagation();
+    if (action !== 'reset' && canUseViewTransitions()) {
+        openActionMenuDialog(action, id);
+        return;
+    }
+
+    closePuzzleActionMenu(() => {
+        if (action === 'reset') {
+            resetPuzzle(id);
+        } else if (action === 'edit') {
+            openPuzzleEditDialog(id);
+        } else if (action === 'mute') {
+            openPuzzleMuteDialog(id);
+        } else {
+            openPuzzleRemoveDialog(id);
+        }
+    });
+}
+
+function openActionMenuDialog(action, id) {
+    openActionMenuId = null;
+    document.documentElement.classList.add('is-action-dialog-transition');
+    const transition = document.startViewTransition(() => {
+        render();
+        if (action === 'edit') {
+            openPuzzleEditDialog(id);
+        } else if (action === 'mute') {
+            openPuzzleMuteDialog(id);
+        } else {
+            openPuzzleRemoveDialog(id);
+        }
+    });
+    transition.finished.finally(() => {
+        document.documentElement.classList.remove('is-action-dialog-transition');
+        document.querySelector('.puzzle-dialog:open')?.classList.add('is-backdrop-visible');
+    });
+}
+
+function closePuzzleActionMenu(afterClose) {
+    const openMenu = document.querySelector('.puzzle-action-menu.is-open');
+    openActionMenuId = null;
+
+    if (!openMenu) {
+        render();
+        afterClose?.();
+        return;
+    }
+
+    openMenu.classList.remove('is-open');
+    openMenu.classList.add('is-closing');
+
+    let finished = false;
+    let fallbackTimer = null;
+    const onTransitionEnd = (event) => {
+        if (event.target === openMenu && event.propertyName === 'opacity') {
+            finish();
+        }
+    };
+    const finish = () => {
+        if (finished) {
+            return;
+        }
+        finished = true;
+        clearTimeout(fallbackTimer);
+        openMenu.removeEventListener('transitionend', onTransitionEnd);
+        render();
+        afterClose?.();
+    };
+
+    if (prefersReducedMotion()) {
+        finish();
+        return;
+    }
+
+    openMenu.addEventListener('transitionend', onTransitionEnd);
+    fallbackTimer = setTimeout(finish, ACTION_MENU_EXIT_TRANSITION_MS + 60);
+}
+
+function resetPuzzle(id) {
+    state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
+    saveData();
+    const card = Array.from(document.querySelectorAll('.game-item')).find((item) => item.dataset.id === id);
+    if (card) {
+        card.classList.remove('played');
+        updateProgress();
+        return;
+    }
+    render();
+}
+
+function openPuzzleEditDialog(id) {
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+
+    editingGameId = id;
+    document.getElementById('edit-game-name').value = game.name;
+    document.getElementById('edit-game-url').value = game.url;
+    const dialog = document.getElementById('edit-puzzle-dialog');
+    showPuzzleDialog(dialog);
+    document.getElementById('edit-game-name').focus();
+}
+
+function openPuzzleMuteDialog(id) {
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+
+    editingGameId = id;
+    pendingPauseDays = isGameMuted(game) ? null : 3;
+    const returnDateInput = document.getElementById('edit-game-return-date');
+    returnDateInput.value = '';
+    returnDateInput.min = getLocalDateInputValue();
+    document.getElementById('muting-puzzle-description').textContent = isGameMuted(game)
+        ? `${game.name} is muted until ${formatReturnDate(game.mutedUntil)}.`
+        : `Choose when ${game.name} should return. You can resume it any time.`;
+    updatePauseOptions();
+    showPuzzleDialog(document.getElementById('mute-puzzle-dialog'));
+}
+
+function openPuzzleRemoveDialog(id) {
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+
+    editingGameId = id;
+    document.getElementById('removing-puzzle-description').textContent = `Remove ${game.name} from Daily Puzzles.`;
+    showPuzzleDialog(document.getElementById('remove-puzzle-dialog'));
+}
+
+function showPuzzleDialog(dialog) {
+    dialog.classList.remove('is-backdrop-visible');
+    dialog.showModal();
+    if (!document.documentElement.classList.contains('is-action-dialog-transition')) {
+        requestAnimationFrame(() => dialog.classList.add('is-backdrop-visible'));
+    }
+}
+
+function closePuzzleDialog(dialogId) {
+    document.getElementById(dialogId).close();
+    editingGameId = null;
+}
+
+function selectPauseDays(days) {
+    pendingPauseDays = days;
+    document.getElementById('edit-game-return-date').value = '';
+    updatePauseOptions();
+}
+
+function updatePauseOptions() {
+    document.querySelectorAll('.pause-option').forEach((button) => {
+        const isSelected = Number(button.dataset.pauseDays) === pendingPauseDays;
+        button.classList.toggle('is-selected', isSelected);
+        button.setAttribute('aria-pressed', String(isSelected));
+    });
+}
+
+function getPauseUntil() {
+    const returnDate = document.getElementById('edit-game-return-date').value;
+    if (returnDate) {
+        return new Date(`${returnDate}T00:00:00`).getTime();
+    }
+    if (!pendingPauseDays) {
+        return null;
+    }
+    const returnAt = new Date();
+    returnAt.setDate(returnAt.getDate() + pendingPauseDays);
+    return returnAt.getTime();
+}
+
+function getLocalDateInputValue(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function savePuzzleEdit() {
+    const game = getGameById(editingGameId);
+    const name = document.getElementById('edit-game-name').value.trim();
+    const url = getSafeHttpUrl(document.getElementById('edit-game-url').value.trim());
+
+    if (!game || !name) {
+        return;
+    }
+    if (!url) {
+        alert('Please enter a valid http or https URL');
+        return;
+    }
+
+    game.name = name;
+    game.url = url;
+    saveData();
+    closePuzzleDialog('edit-puzzle-dialog');
+    render();
+}
+
+function savePuzzleMute() {
+    const game = getGameById(editingGameId);
+    const returnDate = document.getElementById('edit-game-return-date').value;
+    if (!game) {
+        return;
+    }
+
+    game.mutedUntil = pendingPauseDays === null && !returnDate ? game.mutedUntil : getPauseUntil();
+    clearExpiredGameMutes();
+    saveData();
+    closePuzzleDialog('mute-puzzle-dialog');
+    renderWithPuzzleTransition();
+    scheduleMutedGamesRefresh();
+}
+
+function resumeGame(event, id) {
+    event.stopPropagation();
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+    game.mutedUntil = null;
+    if (openActionMenuId) {
+        closePuzzleActionMenu();
+    }
+    saveData();
+    renderWithPuzzleTransition();
+    scheduleMutedGamesRefresh();
+}
+
+function formatReturnDate(timestamp) {
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(timestamp);
 }
 
 function addNewGame() {
@@ -389,24 +724,23 @@ function addNewGame() {
 
     nameInput.value = '';
     urlInput.value = '';
-    clearRemoveConfirmation();
     closeAddMenu();
     saveData();
-    render();
+    renderWithPuzzleTransition();
 }
 
 function exportCustomGames() {
     const backup = {
         version: 1,
         exportedAt: new Date().toISOString(),
-        games: state.games.map(({ id, name, url }) => ({ id, name, url }))
+        games: state.games.map(({ id, name, url, mutedUntil }) => ({ id, name, url, mutedUntil }))
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
 
     link.href = downloadUrl;
-    link.download = `daily-puzzles-games-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `daily-puzzles-puzzles-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -441,7 +775,7 @@ function handleImportFileChange(event) {
                 throw new Error('No valid games');
             }
 
-            if (!window.confirm('Replace your current game list with this backup? Today\'s progress and recently removed games will be cleared.')) {
+            if (!window.confirm('Replace your current puzzle list with this backup? Today\'s progress and bin will be cleared.')) {
                 return;
             }
 
@@ -449,10 +783,10 @@ function handleImportFileChange(event) {
             state.playedIds = [];
             state.removedGames = [];
             state.lastResetDate = getPuzzleDay(undefined, state);
-            clearRemoveConfirmation();
             saveData();
             render();
             scheduleRemovedGamesCleanup();
+            scheduleMutedGamesRefresh();
         } catch (error) {
             console.error('Failed to import games backup.', error);
             alert('That file is not a valid Daily Puzzles backup.');
@@ -461,47 +795,9 @@ function handleImportFileChange(event) {
     reader.readAsText(file);
 }
 
-function removeGame(event, id) {
-    event.stopPropagation();
-    if (pendingRemoveId !== id) {
-        startRemoveConfirmation(id);
-        render();
-        return;
-    }
-
-    removeGameById(id);
-}
-
-function startRemoveConfirmation(id) {
-    pendingRemoveId = id;
-    if (removeConfirmTimer) {
-        clearTimeout(removeConfirmTimer);
-    }
-    removeConfirmTimer = setTimeout(() => {
-        pendingRemoveId = null;
-        removeConfirmTimer = null;
-        render();
-    }, REMOVE_CONFIRM_TIMEOUT_MS);
-}
-
-function clearRemoveConfirmation() {
-    pendingRemoveId = null;
-    if (removeConfirmTimer) {
-        clearTimeout(removeConfirmTimer);
-        removeConfirmTimer = null;
-    }
-}
-
-function cancelRemoveConfirmation(event) {
-    event.stopPropagation();
-    clearRemoveConfirmation();
-    render();
-}
-
 function removeGameById(id) {
     const gameToRemove = state.games.find((game) => game.id === id);
     if (!gameToRemove) {
-        clearRemoveConfirmation();
         return;
     }
 
@@ -510,10 +806,32 @@ function removeGameById(id) {
     state.removedGames = [{ ...gameToRemove, removedAt: Date.now() }, ...state.removedGames.filter((game) => game.id !== id)];
     restoreDefaultGamesIfEmpty();
 
-    clearRemoveConfirmation();
     saveData();
-    render();
+    renderWithPuzzleTransition();
     scheduleRemovedGamesCleanup();
+}
+
+function sendPuzzleToBin() {
+    const id = editingGameId;
+    closePuzzleDialog('remove-puzzle-dialog');
+    if (id) {
+        removeGameById(id);
+    }
+}
+
+function removePuzzleImmediately() {
+    const id = editingGameId;
+    closePuzzleDialog('remove-puzzle-dialog');
+    if (!id) {
+        return;
+    }
+
+    state.games = state.games.filter((game) => game.id !== id);
+    state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
+    restoreDefaultGamesIfEmpty();
+    saveData();
+    renderWithPuzzleTransition();
+    scheduleMutedGamesRefresh();
 }
 
 function restoreRemovedGame(event, id) {
@@ -525,9 +843,8 @@ function restoreRemovedGame(event, id) {
 
     state.removedGames = state.removedGames.filter((game) => game.id !== id);
     state.games.push(gameToRestore);
-    clearRemoveConfirmation();
     saveData();
-    render();
+    renderWithPuzzleTransition();
     scheduleRemovedGamesCleanup();
 }
 
@@ -547,12 +864,15 @@ function handleCardClick(event, id, url) {
         return;
     }
 
-    clearRemoveConfirmation();
+    if (openActionMenuId) {
+        closePuzzleActionMenu();
+    }
 
     if (!state.playedIds.includes(id)) {
         state.playedIds.push(id);
         saveData();
-        render();
+        event.currentTarget.classList.add('played');
+        updateProgress();
     }
 
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -561,28 +881,30 @@ function handleCardClick(event, id, url) {
 function resetManual() {
     state.playedIds = [];
     state.lastResetDate = getPuzzleDay(undefined, state);
-    clearRemoveConfirmation();
     saveData();
     render();
 }
 
 function reorderGames(idList) {
+    const activeGames = state.games.filter((game) => !isGameMuted(game));
     const reordered = idList
-        .map((id) => state.games.find((game) => game.id === id))
+        .map((id) => activeGames.find((game) => game.id === id))
         .filter(Boolean);
 
-    if (reordered.length !== state.games.length) {
+    if (reordered.length !== activeGames.length) {
         return;
     }
 
-    state.games = reordered;
+    let nextActiveGame = 0;
+    state.games = state.games.map((game) => isGameMuted(game) ? game : reordered[nextActiveGame++]);
     saveData();
     updateProgress();
 }
 
 function updateProgress() {
-    const count = state.playedIds.length;
-    const total = state.games.length;
+    const activeGames = state.games.filter((game) => !isGameMuted(game));
+    const count = state.playedIds.filter((id) => activeGames.some((game) => game.id === id)).length;
+    const total = activeGames.length;
     document.getElementById('progress-text').innerText = `${count}/${total}`;
 }
 
@@ -595,22 +917,74 @@ function getFaviconUrl(gameUrl) {
     }
 }
 
+function getPuzzleActionMenuItems(isPlayed, useInlineHandlers = false) {
+    const inlineHandler = useInlineHandlers
+        ? ' onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)"'
+        : '';
+    const actionButton = (action, label, icon, extraClass = '') => `
+        <button type="button" role="menuitem" class="${extraClass}" data-action="${action}"${inlineHandler}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+            <span>${label}</span>
+        </button>
+    `;
+
+    return [
+        isPlayed ? actionButton('reset', 'Reset', '<path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>') : '',
+        actionButton('edit', 'Edit', '<path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path>'),
+        actionButton('mute', 'Mute', '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-1.4-1.2-2.7-2.2-4"></path><path d="m4 4 16 16"></path><path d="M10 21h4"></path>'),
+        actionButton('remove', 'Remove', '<path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path>', 'menu-action-remove')
+    ].join('');
+}
+
+function getMutedPuzzleActionMenuItems() {
+    return `
+        <button type="button" role="menuitem" data-action="edit" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path></svg>
+            <span>Edit</span>
+        </button>
+        <button type="button" role="menuitem" data-action="resume" onclick="resumeGame(event, this.dataset.puzzleId)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="m10 8 6 4-6 4Z"></path></svg>
+            <span>Unmute</span>
+        </button>
+        <button type="button" role="menuitem" class="menu-action-remove" data-action="remove" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path></svg>
+            <span>Remove</span>
+        </button>
+    `;
+}
+
+function getPuzzleViewTransitionName(id) {
+    let hash = 5381;
+    for (const character of id) {
+        hash = (hash * 33) ^ character.charCodeAt(0);
+    }
+    return `puzzle-${(hash >>> 0).toString(36)}`;
+}
+
+function renderWithPuzzleTransition() {
+    if (!canUseViewTransitions()) {
+        render();
+        return;
+    }
+
+    document.startViewTransition(() => render());
+}
+
 function render() {
     const container = document.getElementById('game-list');
     container.innerHTML = '';
 
-    if (pendingRemoveId && !state.games.some((game) => game.id === pendingRemoveId)) {
-        clearRemoveConfirmation();
-    }
+    clearExpiredGameMutes();
 
-    state.games.forEach((game) => {
+    state.games.filter((game) => !isGameMuted(game)).forEach((game) => {
         const isPlayed = state.playedIds.includes(game.id);
         const favicon = getFaviconUrl(game.url);
-        const isConfirming = pendingRemoveId === game.id;
+        const isActionMenuOpen = openActionMenuId === game.id;
 
         const card = document.createElement('div');
-        card.className = `game-card game-item ${isPlayed ? 'played' : ''}`;
+        card.className = `game-card game-item ${isPlayed ? 'played' : ''} ${isActionMenuOpen ? 'has-open-action-menu' : ''}`;
         card.dataset.id = game.id;
+        card.style.viewTransitionName = getPuzzleViewTransitionName(game.id);
         card.onclick = (event) => handleCardClick(event, game.id, game.url);
 
         card.innerHTML = `
@@ -633,35 +1007,84 @@ function render() {
                     </div>
                 </div>
                 <div class="game-actions">
-                    <div class="remove-confirm-wrap ${isConfirming ? 'is-confirming' : ''}">
-                        <button type="button" class="remove-confirm-copy" aria-label="Cancel removing game">Click X again to confirm</button>
-                        <button type="button" class="remove-btn ${isConfirming ? 'is-confirming' : ''}" title="${isConfirming ? 'Click again to remove' : 'Remove Game'}" aria-label="${isConfirming ? 'Confirm remove game' : 'Remove game'}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
+                    <div class="action-menu-wrap">
+                        <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${isActionMenuOpen}">•••</button>
+                        <div class="puzzle-action-menu ${isActionMenuOpen ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
+                            ${getPuzzleActionMenuItems(isPlayed)}
+                        </div>
                     </div>
                 </div>
             </div>
         `;
 
         card.querySelector('.game-title').textContent = game.name;
-        const cancelRemoveButton = card.querySelector('.remove-confirm-copy');
-        cancelRemoveButton.setAttribute('aria-label', `Cancel removing ${game.name}`);
-        cancelRemoveButton.onclick = cancelRemoveConfirmation;
-        const removeButton = card.querySelector('.remove-btn');
-        // Keep Sortable's card-wide touch handling away from the remove
-        // control. The click handler below still performs the confirmation.
+        const moreActionsButton = card.querySelector('.more-actions-btn');
+        moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
+        const actionMenuItems = card.querySelectorAll('.puzzle-action-menu button');
+        // Keep Sortable's card-wide touch handling away from the action menu.
         ['pointerdown', 'touchstart'].forEach((eventName) => {
-            removeButton.addEventListener(eventName, (event) => event.stopPropagation());
-            cancelRemoveButton.addEventListener(eventName, (event) => event.stopPropagation());
+            moreActionsButton.addEventListener(eventName, (event) => event.stopPropagation());
+            actionMenuItems.forEach((item) => item.addEventListener(eventName, (event) => event.stopPropagation()));
         });
-        removeButton.onclick = (event) => removeGame(event, game.id);
+        moreActionsButton.onclick = (event) => togglePuzzleActionMenu(event, game.id);
+        actionMenuItems.forEach((item) => {
+            item.onclick = (event) => openPuzzleAction(event, game.id, item.dataset.action);
+        });
         container.appendChild(card);
     });
 
     renderRecentlyRemoved();
+    renderPausedGames();
     updateProgress();
+}
+
+function renderPausedGames() {
+    const section = document.getElementById('paused-games-section');
+    const list = document.getElementById('paused-games-list');
+    const pausedGames = state.games.filter((game) => isGameMuted(game));
+    list.innerHTML = '';
+
+    if (!pausedGames.length) {
+        section.hidden = true;
+        return;
+    }
+
+    pausedGames.forEach((game) => {
+        const item = document.createElement('li');
+        item.className = `recently-removed-item paused-game-item ${openActionMenuId === game.id ? 'has-open-action-menu' : ''}`;
+        item.style.viewTransitionName = getPuzzleViewTransitionName(game.id);
+
+        const info = document.createElement('div');
+        info.className = 'recently-removed-info';
+        const title = document.createElement('span');
+        title.className = 'recently-removed-game';
+        title.textContent = game.name;
+        const returnDate = document.createElement('span');
+        returnDate.className = 'recently-removed-countdown';
+        returnDate.textContent = `Returns ${formatReturnDate(game.mutedUntil)}`;
+        info.append(title, returnDate);
+
+        const actions = document.createElement('div');
+        actions.className = 'recently-removed-actions';
+        actions.innerHTML = `
+            <div class="action-menu-wrap">
+                <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${openActionMenuId === game.id}" onclick="togglePuzzleActionMenu(event, this.dataset.puzzleId)">•••</button>
+                <div class="puzzle-action-menu ${openActionMenuId === game.id ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
+                    ${getMutedPuzzleActionMenuItems()}
+                </div>
+            </div>
+        `;
+        const moreActionsButton = actions.querySelector('.more-actions-btn');
+        moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
+        moreActionsButton.dataset.puzzleId = game.id;
+        actions.querySelectorAll('.puzzle-action-menu button').forEach((action) => {
+            action.dataset.puzzleId = game.id;
+        });
+        item.append(info, actions);
+        list.appendChild(item);
+    });
+
+    section.hidden = false;
 }
 
 function renderRecentlyRemoved() {
@@ -682,6 +1105,7 @@ function renderRecentlyRemoved() {
     state.removedGames.forEach((game) => {
         const item = document.createElement('li');
         item.className = 'recently-removed-item';
+        item.style.viewTransitionName = getPuzzleViewTransitionName(game.id);
 
         const info = document.createElement('div');
         info.className = 'recently-removed-info';
@@ -715,8 +1139,8 @@ function renderRecentlyRemoved() {
         const trashButton = document.createElement('button');
         trashButton.className = 'btn btn-pill btn-trash';
         trashButton.type = 'button';
-        trashButton.textContent = 'Trash';
-        trashButton.setAttribute('aria-label', `Permanently remove ${game.name}`);
+        trashButton.textContent = 'Remove now';
+        trashButton.setAttribute('aria-label', `Remove ${game.name} immediately`);
         trashButton.onclick = (event) => permanentlyRemoveGame(event, game.id);
 
         const actions = document.createElement('div');
@@ -735,14 +1159,23 @@ function renderRecentlyRemoved() {
 Object.assign(window, {
     addNewGame,
     closeAddMenu,
+    closePuzzleDialog,
     closeSettings,
     exportCustomGames,
     importCustomGames,
     openAddMenu,
     openSettings,
     resetManual,
+    resumeGame,
     restoreDefaultGames,
-    saveSettings
+    removePuzzleImmediately,
+    saveSettings,
+    savePuzzleEdit,
+    savePuzzleMute,
+    selectPauseDays,
+    sendPuzzleToBin,
+    openPuzzleAction,
+    togglePuzzleActionMenu
 });
 
 window.addEventListener('DOMContentLoaded', init);

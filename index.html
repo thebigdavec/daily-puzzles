@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Puzzle Dashboard</title>
+    <title>Daily Puzzles</title>
     <meta name="description"
-        content="A daily puzzle dashboard to save game links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
+        content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="main.css?v=21">
 </head>
 
 <body class="app">
@@ -27,7 +27,7 @@
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 5v14M5 12h14"></path>
                     </svg>
-                    Add a Game
+                    Add
                 </button>
                 <button type="button" onclick="openSettings()" class="btn btn-pill btn-settings">
                     <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -49,12 +49,12 @@
             </div>
         </header>
 
-        <!-- Manage Games Form -->
+        <!-- Manage Puzzles Form -->
         <div id="add-menu" class="add-menu" aria-hidden="true">
             <div class="add-menu-panel game-card">
                 <div class="menu-header">
                     <h3 class="menu-title">Add New Puzzle</h3>
-                    <button class="remove-btn" onclick="closeAddMenu()">
+                    <button class="close-control" type="button" onclick="closeAddMenu()" aria-label="Close add puzzle panel">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -65,10 +65,14 @@
 
                 <div class="menu-content">
                     <div class="form-grid">
-                        <input type="text" id="new-game-name" placeholder="Name (e.g. Sudoku)" aria-label="Game name"
-                            class="input-field">
-                        <input type="url" id="new-game-url" placeholder="URL (https://...)" aria-label="Game URL"
-                            class="input-field">
+                        <label class="form-field" for="new-game-name">
+                            <span class="field-label">Puzzle name</span>
+                            <input type="text" id="new-game-name" placeholder="e.g. Sudoku" class="input-field">
+                        </label>
+                        <label class="form-field" for="new-game-url">
+                            <span class="field-label">Puzzle link</span>
+                            <input type="url" id="new-game-url" placeholder="https://..." class="input-field">
+                        </label>
                     </div>
                     <div class="form-actions">
                         <button onclick="addNewGame()" class="btn btn-primary btn-block">
@@ -83,7 +87,7 @@
             <div class="add-menu-panel game-card">
                 <div class="menu-header">
                     <h3 class="menu-title">Settings</h3>
-                    <button class="remove-btn" type="button" onclick="closeSettings()" aria-label="Close settings">
+                    <button class="close-control" type="button" onclick="closeSettings()" aria-label="Close settings">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -109,28 +113,48 @@
                             </div>
                         </div>
                         <hr>
-                        <h4 class="settings-defaults-title">Game list</h4>
+                        <h4 class="settings-defaults-title">Puzzle list</h4>
                         <div class="settings-defaults-list-section">
                             <div>
-                                <h5>Restore Default Games</h5>
+                                <h5>Restore default puzzles</h5>
                                 <p class="settings-defaults-copy">Restore the original puzzle list and clear today’s
                                     progress.</p>
                                 <button type="button" onclick="restoreDefaultGames()"
-                                    class="btn btn-secondary btn-block">Restore defaults</button>
+                                    class="btn btn-secondary btn-block settings-list-action">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                        <path d="M3 4v5h5"></path>
+                                    </svg>
+                                    Restore defaults
+                                </button>
                             </div>
                             <div>
-                                <h5>Import Games</h5>
+                                <h5>Import puzzles</h5>
                                 <p class="settings-defaults-copy">Import a puzzle list from a file and clear today’s
                                     progress.</p>
                                 <button type="button" onclick="importCustomGames()"
-                                    class="btn btn-secondary btn-block">Import</button>
+                                    class="btn btn-secondary btn-block settings-list-action">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 3v11"></path>
+                                        <path d="m8 10 4 4 4-4"></path>
+                                        <path d="M4 16v4h16v-4"></path>
+                                    </svg>
+                                    Import
+                                </button>
                             </div>
                             <div>
-                                <h5>Export Games</h5>
+                                <h5>Export puzzles</h5>
                                 <p class="settings-defaults-copy">Export your current puzzle list to a file for
                                     safe-keeping.</p>
                                 <button type="button" onclick="exportCustomGames()"
-                                    class="btn btn-secondary btn-block">Export</button>
+                                    class="btn btn-secondary btn-block settings-list-action">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 14V3"></path>
+                                        <path d="m8 7 4-4 4 4"></path>
+                                        <path d="M4 16v4h16v-4"></path>
+                                    </svg>
+                                    Export
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -141,14 +165,112 @@
             </div>
         </div>
 
+        <dialog id="edit-puzzle-dialog" class="puzzle-dialog" aria-labelledby="edit-puzzle-title">
+            <form method="dialog" class="dialog-panel">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="edit-puzzle-title">Edit puzzle</h2>
+                        <p>Update this puzzle’s name or link.</p>
+                    </div>
+                    <button class="close-control" type="button" onclick="closePuzzleDialog('edit-puzzle-dialog')" aria-label="Close edit puzzle dialog">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="m6 6 12 12M18 6 6 18"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="dialog-form-grid">
+                    <label class="form-field" for="edit-game-name">
+                        <span class="field-label">Puzzle name</span>
+                        <input type="text" id="edit-game-name" class="input-field">
+                    </label>
+                    <label class="form-field" for="edit-game-url">
+                        <span class="field-label">Puzzle link</span>
+                        <input type="url" id="edit-game-url" class="input-field">
+                    </label>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" onclick="closePuzzleDialog('edit-puzzle-dialog')" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="savePuzzleEdit()" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="mute-puzzle-dialog" class="puzzle-dialog" aria-labelledby="mute-puzzle-title">
+            <form method="dialog" class="dialog-panel">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="mute-puzzle-title">Mute puzzle</h2>
+                        <p id="muting-puzzle-description">Choose when this puzzle should return. You can resume it any time.</p>
+                    </div>
+                    <button class="close-control" type="button" onclick="closePuzzleDialog('mute-puzzle-dialog')" aria-label="Close mute puzzle dialog">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="m6 6 12 12M18 6 6 18"></path>
+                        </svg>
+                    </button>
+                </div>
+                <fieldset class="pause-controls">
+                    <legend>Mute duration</legend>
+                    <div class="pause-options" role="group" aria-label="Mute duration">
+                        <button type="button" class="btn btn-pill pause-option" data-pause-days="0">Don’t mute</button>
+                        <button type="button" class="btn btn-pill pause-option" data-pause-days="1">1 day</button>
+                        <button type="button" class="btn btn-pill pause-option" data-pause-days="3">3 days</button>
+                        <button type="button" class="btn btn-pill pause-option" data-pause-days="7">1 week</button>
+                    </div>
+                    <label class="field-label" for="edit-game-return-date">Or return on a specific date</label>
+                    <input id="edit-game-return-date" class="input-field" type="date">
+                </fieldset>
+                <div class="dialog-actions">
+                    <button type="button" onclick="closePuzzleDialog('mute-puzzle-dialog')" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="savePuzzleMute()" class="btn btn-primary">Save mute</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="remove-puzzle-dialog" class="puzzle-dialog" aria-labelledby="remove-puzzle-title">
+            <form method="dialog" class="dialog-panel">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="remove-puzzle-title">Remove puzzle</h2>
+                        <p id="removing-puzzle-description">Choose what happens to this puzzle.</p>
+                    </div>
+                    <button class="close-control" type="button" onclick="closePuzzleDialog('remove-puzzle-dialog')" aria-label="Close remove puzzle dialog">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="m6 6 12 12M18 6 6 18"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="remove-options">
+                    <button type="button" class="menu-action" onclick="sendPuzzleToBin()">
+                        <span>Send to bin</span>
+                        <small>Restore it within 7 days.</small>
+                    </button>
+                    <button type="button" class="menu-action menu-action-danger" onclick="removePuzzleImmediately()">
+                        <span>Remove immediately</span>
+                        <small>Remove it without sending it to the bin.</small>
+                    </button>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" onclick="closePuzzleDialog('remove-puzzle-dialog')" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </dialog>
+
         <div id="game-list" class="game-list">
             <!-- Items injected by JS -->
         </div>
 
+        <section id="paused-games-section" class="paused-games" hidden>
+            <div class="recently-removed-header">
+                <h2 class="recently-removed-title">Muted puzzles</h2>
+                <p class="recently-removed-subtitle">Muted until their return date.</p>
+            </div>
+            <ul id="paused-games-list" class="recently-removed-list"></ul>
+        </section>
+
         <section id="recently-removed-section" class="recently-removed" hidden>
             <div class="recently-removed-header">
-                <h2 class="recently-removed-title">Recently Removed</h2>
-                <p class="recently-removed-subtitle">Restore a game within 7 days, or permanently trash it now.</p>
+                <h2 class="recently-removed-title">Bin</h2>
+                <p class="recently-removed-subtitle">Restore a puzzle within 7 days, or remove it immediately.</p>
             </div>
             <ul id="recently-removed-list" class="recently-removed-list"></ul>
         </section>
@@ -161,7 +283,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script.js?v=25"></script>
 </body>
 
 </html>
