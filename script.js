@@ -374,6 +374,7 @@ function openSettings() {
     }
     populateSettings();
     const menu = document.getElementById('settings-menu');
+    closeAddMenu();
     menu.classList.add('is-open');
     menu.setAttribute('aria-hidden', 'false');
 }
@@ -418,8 +419,10 @@ function restoreDefaultGames() {
 function openAddMenu() {
     const menu = document.getElementById('add-menu');
     if (menu.classList.contains('is-open')) {
+        closeAddMenu();
         return;
     }
+    closeSettings();
     menu.classList.add('is-open');
     menu.setAttribute('aria-hidden', 'false');
 }
