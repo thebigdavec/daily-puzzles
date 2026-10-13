@@ -1,3 +1,4 @@
+import { initLibrary, puzzleUrlKey } from './library.js';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -54,6 +55,23 @@ function restoreDefaultGamesIfEmpty() {
 
 function init() {
     loadData();
+    initLibrary({
+        getGames: () => state.games,
+        addGame(game) {
+            if (
+                state.games.some(
+                    (saved) =>
+                        saved.id === game.id ||
+                        puzzleUrlKey(saved.url) === puzzleUrlKey(game.url)
+                )
+            ) {
+                return;
+            }
+            state.games.push({ id: game.id, name: game.name, url: game.url });
+            saveData();
+            render();
+        }
+    });
     checkDailyReset();
     render();
     updateDateDisplay();

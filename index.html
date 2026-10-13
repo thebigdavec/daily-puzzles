@@ -8,7 +8,8 @@
     <meta name="description"
         content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css?v=21">
+    <link rel="stylesheet" href="main.css?v=22">
+    <link rel="stylesheet" href="library.css?v=1">
 </head>
 
 <body class="app">
@@ -22,6 +23,13 @@
             <p id="current-date" class="current-date"></p>
 
             <div class="actions">
+                <button type="button" id="open-library" class="btn btn-pill btn-secondary">
+                    <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 6v15M12 6C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 2Z"></path>
+                    </svg>
+                    Library
+                </button>
                 <button type="button" onclick="openAddMenu()" class="btn btn-pill btn-add">
                     <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -255,6 +263,140 @@
             </form>
         </dialog>
 
+        <dialog
+            id="library-dialog"
+            class="puzzle-dialog library-dialog"
+            aria-labelledby="library-title"
+        >
+            <div class="dialog-panel">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="library-title">Puzzle library</h2>
+                        <p>
+                            Find your next daily favourite. Free to play in your browser.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        id="close-library"
+                        class="close-control"
+                        aria-label="Close puzzle library"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <p class="library-copy">
+                    Choose a few favourites for your daily list. Some games
+                    offer optional accounts or paid extras; the daily puzzle
+                    is free.
+                </p>
+                <div class="library-filters">
+                    <label class="form-field" for="library-search">
+                        <span class="field-label">Search puzzles</span>
+                        <input
+                            id="library-search"
+                            type="search"
+                            class="input-field"
+                            placeholder="Name or description…"
+                        />
+                    </label>
+                    <label class="form-field" for="library-category">
+                        <span class="field-label">Category</span>
+                        <select id="library-category" class="input-field">
+                            <option value="">All categories</option>
+                            <option>Words</option>
+                            <option>Numbers</option>
+                            <option>Logic</option>
+                            <option>Geography</option>
+                        </select>
+                    </label>
+                </div>
+                <p
+                    id="library-count"
+                    class="library-copy"
+                    role="status"
+                ></p>
+                <div id="library-games" class="library-games"></div>
+                <p
+                    id="library-status"
+                    class="library-copy"
+                    role="status"
+                ></p>
+                <details class="library-suggest">
+                    <summary>Suggest a daily puzzle</summary>
+                    <p class="library-copy">
+                        Know a good one? Send it to Dave for review.
+                        Suggestions are checked before they join the
+                        library.
+                    </p>
+                    <form id="suggest-puzzle-form">
+                        <label class="form-field" for="suggest-name"
+                            ><span class="field-label">Puzzle name</span
+                            ><input
+                                id="suggest-name"
+                                class="input-field"
+                                required
+                                maxlength="100"
+                        /></label>
+                        <label class="form-field" for="suggest-url"
+                            ><span class="field-label">Puzzle link</span
+                            ><input
+                                id="suggest-url"
+                                class="input-field"
+                                type="url"
+                                placeholder="https://…"
+                                required
+                                maxlength="500"
+                        /></label>
+                        <label class="form-field" for="suggest-notes"
+                            ><span class="field-label"
+                                >What do you like about it? (optional)</span
+                            ><textarea
+                                id="suggest-notes"
+                                class="input-field"
+                                rows="3"
+                                maxlength="1000"
+                            ></textarea>
+                        </label>
+                        <label class="library-check"
+                            ><input
+                                id="suggest-confirm"
+                                type="checkbox"
+                                required
+                            />
+                            It is free to play in a browser and suits a
+                            daily routine.</label
+                        >
+                        <button type="submit" class="btn btn-primary">
+                            Prepare suggestion email
+                        </button>
+                    </form>
+                    <p class="library-copy">
+                        Opens your email app with a draft to
+                        dave@davecollison.dev. You send it from there.
+                    </p>
+                    <p
+                        id="suggest-status"
+                        class="library-copy"
+                        role="status"
+                    ></p>
+                    <div id="suggest-fallback" hidden>
+                        <p class="library-copy">
+                            If your email app did not open, copy these
+                            details into an email to dave@davecollison.dev.
+                        </p>
+                        <textarea
+                            id="suggest-email-text"
+                            class="input-field"
+                            rows="7"
+                            readonly
+                            aria-label="Suggestion email to copy"
+                        ></textarea>
+                    </div>
+                </details>
+            </div>
+        </dialog>
+
         <div id="game-list" class="game-list">
             <!-- Items injected by JS -->
         </div>
@@ -283,7 +425,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script type="module" src="script.js?v=25"></script>
+    <script type="module" src="script.js?v=26"></script>
 </body>
 
 </html>

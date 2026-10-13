@@ -7,6 +7,9 @@ It is intentionally a static site: there is no build step, account, server, or d
 ## What it does
 
 - Starts with a curated list of daily puzzle links.
+- Offers a searchable **Library** of free browser puzzles, with category filters and an **Add to my list** button. Games already in your list, including muted games, cannot be added twice.
+- Includes daily releases and unlimited games that suit a once-a-day routine.
+- Lets visitors suggest puzzles by preparing an email to `dave@davecollison.dev`. Visitors send the draft from their email app; suggestions do not publish automatically.
 - Lets you add your own HTTP or HTTPS puzzle links.
 - Lets you rename a puzzle, change its link, or mute it temporarily; muted puzzles remain available through the three-dot action menu.
 - Opens a puzzle in a new tab and marks it as played when you select its card.
@@ -48,6 +51,12 @@ Use a current browser with ES module and `Intl.DateTimeFormat` support. The rese
 
 ## Tests
 
+Run catalogue, search, duplicate-link, email-draft and reset checks with Node.js 22 or newer:
+
+```sh
+node --test test/library.test.js
+```
+
 The focused reset-schedule checks cover reset boundaries, distant time zones, daylight-saving behaviour, and invalid settings. Serve the project locally, then open:
 
 ```text
@@ -58,11 +67,31 @@ The page reports either **All reset schedule tests passed** or the failing asser
 
 ## Project layout
 
-| Path | Purpose |
-| --- | --- |
-| `index.html` | Application structure and controls. |
-| `main.css` | Dashboard layout, responsive styling, and interaction states. |
-| `script.js` | UI rendering, local persistence, puzzle management, and scheduling. |
-| `reset-schedule.js` | Time-zone-aware puzzle-day and next-reset calculations. |
-| `test/reset-schedule.html` | Browser test runner. |
-| `test/reset-schedule.test.js` | Reset-scheduling test cases. |
+| Path                          | Purpose                                                              |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `index.html`                  | Application structure and controls.                                  |
+| `main.css`                    | Dashboard layout, responsive styling, and interaction states.        |
+| `script.js`                   | UI rendering, local persistence, puzzle management, and scheduling.  |
+| `library-games.js`            | Curated catalogue, publisher evidence and review dates.              |
+| `library.js`                  | Library search, personal-list additions and suggestion email drafts. |
+| `library.css`                 | Responsive library layout.                                           |
+| `reset-schedule.js`           | Time-zone-aware puzzle-day and next-reset calculations.              |
+| `test/reset-schedule.html`    | Browser test runner.                                                 |
+| `test/reset-schedule.test.js` | Reset-scheduling test cases.                                         |
+
+## Reviewing suggestions
+
+Suggestions arrive by email to **dave@davecollison.dev**. There is no admin approval button; adding an approved suggestion means updating the catalogue and publishing the site.
+
+1. Open the suggested game and check that it is free to play, works in a browser, has a simple HTTP(S) link and suits a daily routine. Optional accounts, paid extras and archives are fine. Unlimited games are also welcome when they suit a once-a-day routine.
+2. Add an entry to the `LIBRARY_GAMES` array in `library-games.js`, before the closing `].map(...)`. Include a unique `id`, `name`, `url`, `category`, short `description`, publisher information URL in `source`, and the date you checked it in `checkedOn` (`YYYY-MM-DD`). Use an existing category: `Words`, `Numbers`, `Logic` or `Geography`.
+3. Format the changed file and run `node --test test/library.test.js`. Check the new entry in the local library view.
+4. Publish the updated site to GitHub Pages. The new entry becomes available to visitors after publication; their personal lists stay in local storage.
+
+For help, paste the emailed suggestion into Codex and say **“Add this to the library.”** Codex can check the game and make the catalogue change for you.
+
+The initial catalogue was checked against publisher pages on 13 October 2026; availability may change.
+
+There is no server-side suggestion storage. The form prepares an email and provides copyable text if no email handler opens. Preparing a draft does not prove that it was sent or received.
+
+This repository has no configured formatter or formatter command. Match the existing source style when editing; do not introduce a formatting dependency just for a change.
