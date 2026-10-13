@@ -10,7 +10,7 @@
     0 16px 36px rgba(28, 43, 80, 0.12),
     0 18px 44px rgba(1, 6, 16, 0.55)
   );
-  --black-shadow: 0 12px 0 -6px #0008;
+  --black-shadow: 0 0 2px #0008, 0 0 5px #0008,0 12px 0 -6px #0008;
   --text-primary: light-dark(#1b2438, #e2e8f0);
   --text-secondary: light-dark(#5b6a87, #93a2bf);
   --border-color: light-dark(#d5def2, #27344e);

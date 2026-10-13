@@ -469,6 +469,15 @@ function togglePuzzleActionMenu(event, id) {
 
 function openPuzzleAction(event, id, action) {
     event.stopPropagation();
+    if (action === 'copy') {
+        copyPuzzleLink(id);
+        return;
+    }
+    if (action === 'share') {
+        sharePuzzleLink(id);
+        return;
+    }
+
     if (action !== 'reset' && canUseViewTransitions()) {
         openActionMenuDialog(action, id);
         return;
@@ -485,6 +494,45 @@ function openPuzzleAction(event, id, action) {
             openPuzzleRemoveDialog(id);
         }
     });
+}
+
+async function sharePuzzleLink(id) {
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+
+    if (typeof navigator.share !== 'function') {
+        closePuzzleActionMenu();
+        window.prompt('Sharing is not available in this browser. Copy this puzzle link to share it:', game.url);
+        return;
+    }
+
+    try {
+        await navigator.share({ title: game.name, url: game.url });
+        closePuzzleActionMenu();
+    } catch (error) {
+        closePuzzleActionMenu();
+        if (error.name !== 'AbortError') {
+            window.prompt('Could not open sharing. Copy this puzzle link to share it:', game.url);
+        }
+    }
+}
+
+async function copyPuzzleLink(id) {
+    const game = getGameById(id);
+    if (!game) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(game.url);
+        closePuzzleActionMenu();
+        alert('Puzzle link copied. You can now paste it into a message or anywhere else.');
+    } catch (error) {
+        closePuzzleActionMenu();
+        window.prompt('Copy this puzzle link:', game.url);
+    }
 }
 
 function openActionMenuDialog(action, id) {
@@ -934,6 +982,8 @@ function getPuzzleActionMenuItems(isPlayed, useInlineHandlers = false) {
     return [
         isPlayed ? actionButton('reset', 'Reset', '<path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>') : '',
         actionButton('edit', 'Edit', '<path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path>'),
+        actionButton('copy', 'Copy link', '<rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path>'),
+        actionButton('share', 'Share link', '<path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path>'),
         actionButton('mute', 'Mute', '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-1.4-1.2-2.7-2.2-4"></path><path d="m4 4 16 16"></path><path d="M10 21h4"></path>'),
         actionButton('remove', 'Remove', '<path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path>', 'menu-action-remove')
     ].join('');
@@ -944,6 +994,14 @@ function getMutedPuzzleActionMenuItems() {
         <button type="button" role="menuitem" data-action="edit" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path></svg>
             <span>Edit</span>
+        </button>
+        <button type="button" role="menuitem" data-action="copy" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path></svg>
+            <span>Copy link</span>
+        </button>
+        <button type="button" role="menuitem" data-action="share" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path></svg>
+            <span>Share link</span>
         </button>
         <button type="button" role="menuitem" data-action="resume" onclick="resumeGame(event, this.dataset.puzzleId)">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="m10 8 6 4-6 4Z"></path></svg>
