@@ -68,6 +68,7 @@ export function initLibrary({ getGames, addGame }) {
             );
         for (const { game, added } of matches) {
             const card = element('article', 'library-card');
+            card.dataset.gameId = game.id;
             const header = element('div', 'library-card-header');
             header.append(element('p', 'library-meta', game.category));
             if (!added) {
@@ -93,18 +94,73 @@ export function initLibrary({ getGames, addGame }) {
             const button = element('button', '');
             button.type = 'button';
             setAddButton(button, game.name, added);
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
                 const index = Array.from(
                     list.querySelectorAll('button:not(:disabled)')
                 ).indexOf(button);
+                const restoreFocus = document.activeElement === button;
                 addGame(game);
+                button.disabled = true;
+                button.textContent = '✓ Added';
+                status.textContent = `${game.name} added to your list.`;
+                const animate =
+                    !window.matchMedia('(prefers-reduced-motion: reduce)')
+                        .matches &&
+                    typeof card.animate === 'function';
+                if (animate) {
+                    await card.animate(
+                        [
+                            { opacity: 1 },
+                            { opacity: 0, transform: 'translateY(12px)' }
+                        ],
+                        { duration: 240, easing: 'ease-in', fill: 'forwards' }
+                    ).finished.catch(() => {});
+                }
+                if (!button.isConnected || !dialog.open) return;
+                const focusStillHere =
+                    document.activeElement === button ||
+                    document.activeElement === document.body;
+                const positions = new Map(
+                    Array.from(list.children, (item) => [
+                        item.dataset.gameId,
+                        item.getBoundingClientRect()
+                    ])
+                );
                 renderLibrary();
+                if (animate) {
+                    for (const item of list.children) {
+                        if (item.dataset.gameId === game.id) {
+                            item.animate([{ opacity: 0 }, { opacity: 1 }], {
+                                duration: 360,
+                                easing: 'ease-out'
+                            });
+                            continue;
+                        }
+                        const before = positions.get(item.dataset.gameId);
+                        if (!before) continue;
+                        const after = item.getBoundingClientRect();
+                        if (before.left === after.left && before.top === after.top)
+                            continue;
+                        item.animate(
+                            [
+                                {
+                                    transform: `translate(${before.left - after.left}px, ${before.top - after.top}px)`
+                                },
+                                { transform: 'translate(0, 0)' }
+                            ],
+                            {
+                                duration: 360,
+                                easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)'
+                            }
+                        );
+                    }
+                }
                 const buttons = list.querySelectorAll('button:not(:disabled)');
                 const next =
                     buttons[Math.min(index, buttons.length - 1)] ||
                     document.getElementById('close-library');
-                next.focus({ preventScroll: true });
-                status.textContent = `${game.name} added to your list.`;
+                if (restoreFocus && focusStillHere)
+                    next.focus({ preventScroll: true });
             });
             if (added) title.append(button);
             else card.append(button);
