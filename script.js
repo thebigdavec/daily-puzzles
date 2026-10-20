@@ -95,7 +95,10 @@ async function init() {
     const list = document.getElementById('game-list');
     if (window.Sortable) {
         Sortable.create(list, {
-            animation: 250,
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 250,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            forceFallback: true,
+            fallbackOnBody: true,
             handle: '.drag-handle',
             delay: 100,
             delayOnTouchOnly: false,

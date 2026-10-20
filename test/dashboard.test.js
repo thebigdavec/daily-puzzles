@@ -5,6 +5,26 @@ import { dashboard, makeLocks, makeStorage } from './helpers/dashboard.js';
 
 const custom = { id: 'custom', name: 'My puzzle', url: 'https://example.com/puzzle' };
 
+test('drag reordering shares mouse/touch animation and respects reduced motion', async () => {
+    for (const reducedMotion of [false, true]) {
+        const app = dashboard();
+        let options;
+        app.context.window.matchMedia = () => ({ matches: reducedMotion });
+        app.context.Sortable = app.context.window.Sortable = {
+            create(list, settings) {
+                assert.equal(list, app.fields['game-list']);
+                options = settings;
+            }
+        };
+        await app.context.init();
+        assert.equal(options.animation, reducedMotion ? 0 : 250);
+        assert.equal(options.easing, 'cubic-bezier(0.2, 0.8, 0.2, 1)');
+        assert.equal(options.forceFallback, true);
+        assert.equal(options.fallbackOnBody, true);
+        assert.equal(options.handle, '.drag-handle');
+    }
+});
+
 test('loading valid data never writes it back, even when writes are blocked', () => {
     const storage = makeStorage();
     const saved = JSON.parse(storage.value);
