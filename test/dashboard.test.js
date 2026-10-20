@@ -392,3 +392,31 @@ test('saving an edit returns focus to the renamed puzzle after rendering', async
     assert.deepEqual(calls, ['render', 'wordle']);
     assert.equal(JSON.parse(app.storage.value).games[0].name, 'My Wordle');
 });
+
+test('Reset All clears existing cards after saving so their green can fade without replacing them', async () => {
+    for (const failWrite of [false, true]) {
+        const app = dashboard();
+        app.context.loadData();
+        const label = { id: 'opened-label', hidden: false };
+        const link = { removeAttribute(name) { delete this[name]; }, 'aria-describedby': label.id };
+        let played = true;
+        const card = {
+            classList: { toggle(name, value) { played = value; } },
+            querySelector: selector => selector === '.played-label' ? label : link
+        };
+        app.context.document.querySelectorAll = selector => {
+            assert.equal(selector, '.game-item.played');
+            assert.deepEqual(JSON.parse(app.storage.value).playedIds, []);
+            return [card];
+        };
+        let renders = 0;
+        app.context.render = () => { renders++; };
+        app.storage.failWrite = failWrite;
+        await app.context.resetManual();
+        assert.equal(played, failWrite);
+        assert.equal(label.hidden, !failWrite);
+        assert.equal(link['aria-describedby'], failWrite ? label.id : undefined);
+        assert.deepEqual(JSON.parse(app.storage.value).playedIds, failWrite ? ['wordle'] : []);
+        assert.equal(renders, failWrite ? 1 : 0);
+    }
+});

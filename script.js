@@ -899,7 +899,8 @@ async function resetManual() {
     state.playedIds = [];
     state.lastResetDate = getPuzzleDay(undefined, state);
     if (!(await saveData())) return;
-    render();
+    document.querySelectorAll('.game-item.played').forEach((card) => updatePuzzleOpened(card, false));
+    updateProgress();
 }
 
 async function reorderGames(idList) {

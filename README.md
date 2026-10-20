@@ -1,6 +1,6 @@
 # Daily Puzzles
 
-Daily Puzzles is a small, browser-based dashboard for keeping a personal list of the puzzles you play each day. Add puzzle links, work through them in any order, and let the dashboard clear your completed state when your chosen puzzle day begins.
+Daily Puzzles is a small, browser-based dashboard for keeping a personal list of the puzzles you play each day. Add puzzle links, work through them in any order, and let the dashboard clear your opened state when your chosen puzzle day begins.
 
 It is intentionally a static site: there is no build step, account, server, or database. Your list and progress stay in your browser.
 
@@ -13,10 +13,11 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Lets visitors suggest puzzles by preparing an email to `dave@davecollison.dev`. Visitors send the draft from their email app; suggestions do not publish automatically.
 - Lets you add your own HTTP or HTTPS puzzle links using a name and link. Enter submits the Add form, missing or invalid fields receive browser validation, and a visible message confirms a successful addition.
 - Lets you rename a puzzle, change its link, or mute it temporarily; muted puzzles remain available through the three-dot action menu.
+- Offers **Copy link** and **Share link** in each puzzle’s action menu, with a copyable link when clipboard access or native sharing is unavailable.
 - Opens a puzzle in a new tab and highlights its card when you select it or activate its keyboard-accessible title link. Opening a link records a visit, not completion of the game.
 - Keeps opened counts, labels and status announcements available to screen readers without visible badges or notifications.
 - Supports drag-and-drop reordering from the handle, including on touch devices. The rest of each card scrolls normally. **Move up** and **Move down** in the action popover also work with a keyboard.
-- Resets played puzzles manually or automatically at a configurable time.
+- Resets opened puzzles with **Reset All**, an individual puzzle’s **Reset** action, or automatically at a configurable time. Manual resets fade out the green highlight; reduced-motion settings turn that fade off.
 - Lets you use either the device time zone or a specific IANA time zone, such as `Europe/London`.
 - Lets you restore the original curated puzzle list from **Settings** whenever you want a clean start.
 - Lets you export the current puzzle list as a JSON backup and import it on another device. Importing replaces the list and clears today’s progress.
@@ -76,13 +77,13 @@ Use a current Chrome, Edge, Firefox or Safari with ES modules, native `<dialog>`
 
 ## Tests
 
-Run catalogue, search, duplicate-link, email-draft, reset and automatic settings-save checks with Node.js 22 or newer:
+Run dashboard, catalogue, search, duplicate-link, email-draft, reset and automatic settings-save checks with Node.js 22 or newer:
 
 ```sh
 node --test test/dashboard.test.js test/library.test.js test/settings.test.js
 ```
 
-The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, shared active/muted popovers, keyboard reorder boundaries and persistence, field validation, accessible opened labels, duplicate matching, generated category choices, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
+The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, shared active/muted popovers, keyboard reorder boundaries and persistence, field validation, manual-reset card preservation, accessible opened labels, duplicate matching, generated category choices, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
 
 ```text
 http://localhost:8000/test/reset-schedule.html
@@ -92,20 +93,23 @@ The page reports either **All reset schedule tests passed** or the failing asser
 
 ## Project layout
 
-| Path                          | Purpose                                                                   |
-| ----------------------------- | ------------------------------------------------------------------------- |
-| `index.html`                  | Application structure and controls.                                       |
-| `main.css`                    | Dashboard layout, responsive styling, and interaction states.             |
-| `script.js`                   | UI rendering, local persistence, puzzle management, and scheduling.       |
-| `library-games.js`            | Curated catalogue, publisher evidence and review dates.                   |
-| `library.js`                  | Library search, personal-list additions and suggestion email drafts.      |
-| `library.css`                 | Responsive library layout.                                                |
-| `reset-schedule.js`           | Time-zone-aware puzzle-day and next-reset calculations.                   |
-| `test/dashboard.test.js`      | Storage, concurrency, empty-list, mute-timer and puzzle-link regressions. |
-| `test/settings.test.js`       | Automatic settings saves, validation and failure feedback.                |
-| `test/helpers/dashboard.js`   | Isolated dashboard harness using fake browser storage and locks.          |
-| `test/reset-schedule.html`    | Browser test runner.                                                      |
-| `test/reset-schedule.test.js` | Reset-scheduling test cases.                                              |
+| Path                          | Purpose                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `index.html`                  | Application structure and controls.                                          |
+| `main.css`                    | Dashboard layout, responsive styling, and interaction states.                |
+| `script.js`                   | UI rendering, local persistence, puzzle management, and scheduling.          |
+| `library-games.js`            | Curated catalogue, publisher evidence and review dates.                      |
+| `library.js`                  | Library search, personal-list additions and suggestion email drafts.         |
+| `library.css`                 | Responsive library layout.                                                   |
+| `reset-schedule.js`           | Time-zone-aware puzzle-day and next-reset calculations.                      |
+| `test/dashboard.test.js`      | Storage, concurrency, empty-list, mute-timer and puzzle-link regressions.    |
+| `test/library.test.js`        | Catalogue, search, duplicate matching, suggestions and library interactions. |
+| `test/settings.test.js`       | Automatic settings saves, validation and failure feedback.                   |
+| `test/helpers/dashboard.js`   | Isolated dashboard harness using fake browser storage and locks.             |
+| `test/reset-schedule.html`    | Browser test runner.                                                         |
+| `test/reset-schedule.test.js` | Reset-scheduling test cases.                                                 |
+
+`docs/mobile-app-navigation.md` is a design proposal. Its full-screen mobile navigation and browser-history behaviour are not implemented; the current app uses dialogs and an inline Settings panel.
 
 ## Reviewing suggestions
 

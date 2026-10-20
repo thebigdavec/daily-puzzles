@@ -929,6 +929,7 @@ hr {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .game-card,
   .puzzle-action-menu,
   .puzzle-dialog,
   .puzzle-dialog::backdrop {
