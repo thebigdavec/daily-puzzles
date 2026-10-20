@@ -338,3 +338,17 @@ test('opened state is visible and connected to its link for assistive technology
     assert.equal(label.hidden, true);
     assert.equal(link['aria-describedby'], undefined);
 });
+
+test('saving an edit returns focus to the renamed puzzle after rendering', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    app.context.window.selectGame('wordle');
+    app.context.document.getElementById('edit-game-name').value = 'My Wordle';
+    app.context.document.getElementById('edit-game-url').value = 'https://www.nytimes.com/games/wordle';
+    const calls = [];
+    app.context.render = () => calls.push('render');
+    app.context.focusPuzzleActions = id => calls.push(id);
+    await app.context.savePuzzleEdit();
+    assert.deepEqual(calls, ['render', 'wordle']);
+    assert.equal(JSON.parse(app.storage.value).games[0].name, 'My Wordle');
+});

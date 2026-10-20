@@ -674,6 +674,7 @@ async function savePuzzleEdit() {
     if (!(await saveData())) return;
     closePuzzleDialog('edit-puzzle-dialog');
     render();
+    focusPuzzleActions(game.id);
 }
 
 async function savePuzzleMute() {
