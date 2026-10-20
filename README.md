@@ -9,6 +9,7 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Starts with a curated list of daily puzzle links.
 - Offers a searchable **Library** of free browser puzzles, with category filters and an **Add to my list** button. Games already in your list, including muted games, cannot be added twice.
 - Includes daily releases and unlimited games that suit a once-a-day routine.
+- Includes **Suggest for library** in the action menu for puzzles outside the library, opening the suggestion form with its name and link filled in.
 - Lets visitors suggest puzzles by preparing an email to `dave@davecollison.dev`. Visitors send the draft from their email app; suggestions do not publish automatically.
 - Lets you add your own HTTP or HTTPS puzzle links.
 - Lets you rename a puzzle, change its link, or mute it temporarily; muted puzzles remain available through the three-dot action menu.
@@ -91,6 +92,8 @@ Suggestions arrive by email to **dave@davecollison.dev**. There is no admin appr
 For help, paste the emailed suggestion into Codex and say **“Add this to the library.”** Codex can check the game and make the catalogue change for you.
 
 The initial catalogue was checked against publisher pages on 13 October 2026; availability may change.
+
+Games already in the library cannot be suggested through the form; matching uses the puzzle link, even if its name has changed.
 
 There is no server-side suggestion storage. The form prepares an email and provides copyable text if no email handler opens. Preparing a draft does not prove that it was sent or received.
 

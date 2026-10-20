@@ -1,4 +1,4 @@
-import { initLibrary, puzzleUrlKey } from './library.js';
+import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -496,6 +496,12 @@ function openPuzzleAction(event, id, action) {
         return;
     }
 
+    if (action === 'suggest') {
+        const game = getGameById(id);
+        if (game) closePuzzleActionMenu(() => openPuzzleSuggestion(game));
+        return;
+    }
+
     if (action !== 'reset' && canUseViewTransitions()) {
         openActionMenuDialog(action, id);
         return;
@@ -986,7 +992,7 @@ function getFaviconUrl(gameUrl) {
     }
 }
 
-function getPuzzleActionMenuItems(isPlayed, useInlineHandlers = false) {
+function getPuzzleActionMenuItems(game, isPlayed, useInlineHandlers = false) {
     const inlineHandler = useInlineHandlers
         ? ' onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)"'
         : '';
@@ -1002,12 +1008,13 @@ function getPuzzleActionMenuItems(isPlayed, useInlineHandlers = false) {
         actionButton('edit', 'Edit', '<path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path>'),
         actionButton('copy', 'Copy link', '<rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path>'),
         actionButton('share', 'Share link', '<path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path>'),
+        !isInLibrary(game.url) ? actionButton('suggest', 'Suggest for library', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 6 9 7 9-7"></path>') : '',
         actionButton('mute', 'Mute', '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-1.4-1.2-2.7-2.2-4"></path><path d="m4 4 16 16"></path><path d="M10 21h4"></path>'),
         actionButton('remove', 'Remove', '<path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path>', 'menu-action-remove')
     ].join('');
 }
 
-function getMutedPuzzleActionMenuItems() {
+function getMutedPuzzleActionMenuItems(game) {
     return `
         <button type="button" role="menuitem" data-action="edit" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path></svg>
@@ -1021,6 +1028,10 @@ function getMutedPuzzleActionMenuItems() {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path></svg>
             <span>Share link</span>
         </button>
+        ${!isInLibrary(game.url) ? `<button type="button" role="menuitem" data-action="suggest" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 6 9 7 9-7"></path></svg>
+            <span>Suggest for library</span>
+        </button>` : ''}
         <button type="button" role="menuitem" data-action="resume" onclick="resumeGame(event, this.dataset.puzzleId)">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="m10 8 6 4-6 4Z"></path></svg>
             <span>Unmute</span>
@@ -1089,7 +1100,7 @@ function render() {
                     <div class="action-menu-wrap">
                         <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${isActionMenuOpen}">•••</button>
                         <div class="puzzle-action-menu ${isActionMenuOpen ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
-                            ${getPuzzleActionMenuItems(isPlayed)}
+                            ${getPuzzleActionMenuItems(game, isPlayed)}
                         </div>
                     </div>
                 </div>
@@ -1149,7 +1160,7 @@ function renderPausedGames() {
             <div class="action-menu-wrap">
                 <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${openActionMenuId === game.id}" onclick="togglePuzzleActionMenu(event, this.dataset.puzzleId)">•••</button>
                 <div class="puzzle-action-menu ${openActionMenuId === game.id ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
-                    ${getMutedPuzzleActionMenuItems()}
+                    ${getMutedPuzzleActionMenuItems(game)}
                 </div>
             </div>
         `;

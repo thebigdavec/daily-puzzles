@@ -15,6 +15,11 @@ export function puzzleUrlKey(value) {
     }
 }
 
+export function isInLibrary(url) {
+    const key = puzzleUrlKey(url);
+    return LIBRARY_GAMES.some((game) => puzzleUrlKey(game.url) === key);
+}
+
 export function filterLibrary(search, category) {
     const query = search.trim().toLowerCase();
     return LIBRARY_GAMES.filter(
@@ -29,11 +34,26 @@ export function filterLibrary(search, category) {
 export function suggestionEmail(name, url, notes) {
     if (!name.trim() || !puzzleUrlKey(url))
         throw new Error('Enter a name and a valid http or https puzzle link.');
+    if (isInLibrary(url))
+        throw new Error('This puzzle is already in the library.');
     const body = `Puzzle suggestion\n\nName: ${name.trim()}\nLink: ${new URL(url).href}\n\nFree to play in a browser: yes\nSuitable for a daily routine: yes\n\nNotes: ${notes.trim() || 'None'}\n\nPlease review before adding to the puzzle library.`;
     return {
         body,
         href: `mailto:dave@davecollison.dev?subject=${encodeURIComponent(`Puzzle suggestion: ${name.trim()}`)}&body=${encodeURIComponent(body)}`
     };
+}
+
+export function openPuzzleSuggestion(game) {
+    const form = document.getElementById('suggest-puzzle-form');
+    form.reset();
+    document.getElementById('suggest-name').value = game.name;
+    document.getElementById('suggest-url').value = game.url;
+    document.getElementById('suggest-status').textContent = '';
+    document.getElementById('suggest-fallback').hidden = true;
+    document.getElementById('suggest-email-text').value = '';
+    form.closest('details').open = true;
+    document.getElementById('open-library').click();
+    document.getElementById('suggest-notes').focus();
 }
 
 export function initLibrary({ getGames, addGame }) {

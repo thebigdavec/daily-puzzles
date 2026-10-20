@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LIBRARY_GAMES } from '../library-games.js';
-import { filterLibrary, puzzleUrlKey, suggestionEmail } from '../library.js';
+import {
+    filterLibrary,
+    isInLibrary,
+    openPuzzleSuggestion,
+    puzzleUrlKey,
+    suggestionEmail
+} from '../library.js';
 import { runResetScheduleTests } from './reset-schedule.test.js';
 
 test('catalogue has unique IDs and links and complete editorial details', () => {
@@ -82,3 +88,79 @@ test('email drafts keep user text inside encoded subject and body', () => {
 });
 
 test('existing reset schedule checks still pass', runResetScheduleTests);
+
+test('suggesting a saved puzzle prefills the form and clears the previous draft', (t) => {
+    const details = { open: false };
+    const fields = Object.fromEntries(
+        [
+            'suggest-name',
+            'suggest-url',
+            'suggest-notes',
+            'suggest-confirm',
+            'suggest-status',
+            'suggest-fallback',
+            'suggest-email-text'
+        ].map((id) => [id, {
+            value: 'Previous draft',
+            textContent: 'Previous status',
+            hidden: false
+        }])
+    );
+    fields['suggest-confirm'].checked = true;
+    fields['suggest-puzzle-form'] = {
+        reset() {
+            fields['suggest-notes'].value = '';
+            fields['suggest-confirm'].checked = false;
+        },
+        closest: () => details
+    };
+    let opened = false;
+    fields['open-library'] = {
+        click() {
+            opened = true;
+        }
+    };
+    let focused = false;
+    fields['suggest-notes'].focus = () => {
+        focused = true;
+    };
+    const previousDocument = globalThis.document;
+    globalThis.document = { getElementById: (id) => fields[id] };
+    t.after(() => {
+        if (previousDocument === undefined) delete globalThis.document;
+        else globalThis.document = previousDocument;
+    });
+
+    openPuzzleSuggestion({
+        name: 'Puzzle & friends',
+        url: 'https://example.com/daily?a=1&b=2'
+    });
+
+    assert.equal(fields['suggest-name'].value, 'Puzzle & friends');
+    assert.equal(fields['suggest-url'].value, 'https://example.com/daily?a=1&b=2');
+    assert.equal(fields['suggest-notes'].value, '');
+    assert.equal(fields['suggest-confirm'].checked, false);
+    assert.equal(fields['suggest-status'].textContent, '');
+    assert.equal(fields['suggest-fallback'].hidden, true);
+    assert.equal(fields['suggest-email-text'].value, '');
+    assert.ok(details.open && opened && focused);
+});
+
+test('library matches block duplicate suggestions even under a different name', () => {
+    for (const game of LIBRARY_GAMES) {
+        assert.ok(isInLibrary(game.url));
+        assert.throws(
+            () => suggestionEmail('A different name', game.url, ''),
+            /already in the library/
+        );
+    }
+    const equivalent = 'http://www.wafflegame.net/daily/index.html';
+    assert.ok(isInLibrary(equivalent));
+    assert.throws(
+        () => suggestionEmail('My Waffle', equivalent, ''),
+        /already in the library/
+    );
+    assert.equal(isInLibrary('https://example.com/new-puzzle'), false);
+    assert.equal(isInLibrary('invalid'), false);
+    assert.equal(isInLibrary('https://example.com:9443/daily'), false);
+});
