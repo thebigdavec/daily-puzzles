@@ -32,6 +32,10 @@ New lists and **Use default list** use those entries in numbered order. Existing
 
 The **Add** form still needs only a puzzle name and link. It appends the puzzle to the user's personal list, where it can be dragged into position. User-added puzzles need neither a library entry nor a `defaultOrder` value.
 
+Library category choices also come from the catalogue entries, in their first-seen order. The shared `hasPuzzle()` check recognises an existing puzzle by its ID or equivalent link when displaying the library, adding from it or restoring from the Bin. Muted puzzles count as existing entries.
+
+Active and muted puzzle menus share their markup and event bindings. Their available actions depend on whether the puzzle is played, muted or already in the library. Dashboard updates, including startup, use `refreshDashboard()`.
+
 ## Run locally
 
 Serve the project directory with any static file server, then open the local address it prints. For example, with Python 3:
@@ -74,7 +78,7 @@ Run catalogue, search, duplicate-link, email-draft, reset and automatic settings
 node --test test/dashboard.test.js test/library.test.js test/settings.test.js
 ```
 
-The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
+The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, shared active/muted menus, duplicate matching, generated category choices, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
 
 ```text
 http://localhost:8000/test/reset-schedule.html
@@ -104,7 +108,7 @@ The page reports either **All reset schedule tests passed** or the failing asser
 Suggestions arrive by email to **dave@davecollison.dev**. There is no admin approval button; adding an approved suggestion means updating the catalogue and publishing the site.
 
 1. Open the suggested game and check that it is free to play, works in a browser, has a simple HTTP(S) link and suits a daily routine. Optional accounts, paid extras and archives are fine. Unlimited games are also welcome when they suit a once-a-day routine.
-2. Add an entry to the `LIBRARY_GAMES` array in `library-games.js`, before the closing `].map(...)`. Include a unique `id`, `name`, `url`, `category`, short `description`, publisher information URL in `source`, and the date you checked it in `checkedOn` (`YYYY-MM-DD`). Use an existing category: `Words`, `Numbers`, `Logic`, `Geography` or `Quiz`.
+2. Add an entry to the `LIBRARY_GAMES` array in `library-games.js`, before the closing `].map(...)`. Include a unique `id`, `name`, `url`, `category`, short `description`, publisher information URL in `source`, and the date you checked it in `checkedOn` (`YYYY-MM-DD`). Reuse a suitable category from the catalogue; the filter options are generated automatically.
 3. Format the changed file and run `node --test test/library.test.js`. Check the new entry in the local library view.
 4. Publish the updated site to GitHub Pages. The new entry becomes available to visitors after publication; their personal lists stay in local storage.
 

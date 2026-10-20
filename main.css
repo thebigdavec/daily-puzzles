@@ -125,41 +125,16 @@ body.app {
   background: color-mix(in oklab, var(--accent-color), transparent 84%);
 }
 
-.btn-reset {
-  color: var(--text-secondary);
-  border-color: color-mix(in oklab, var(--text-secondary), transparent 74%);
-  background: color-mix(in oklab, var(--text-secondary), transparent 92%);
-}
-
-.btn-reset:hover {
-  background: color-mix(in oklab, var(--text-secondary), transparent 86%);
-}
-
+.btn-reset,
 .btn-settings {
   color: var(--text-secondary);
   border-color: color-mix(in oklab, var(--text-secondary), transparent 74%);
   background: color-mix(in oklab, var(--text-secondary), transparent 92%);
 }
 
+.btn-reset:hover,
 .btn-settings:hover {
   background: color-mix(in oklab, var(--text-secondary), transparent 86%);
-}
-
-.btn-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-}
-
-.btn-close {
-  color: var(--danger-color);
-  background: var(--danger-soft);
-}
-
-.btn-close:hover {
-  background: color-mix(in oklab, var(--danger-color), transparent 84%);
 }
 
 .btn-primary {
@@ -671,12 +646,6 @@ select.input-field {
   font-size: 1.08rem;
 }
 
-.menu-description {
-  margin: 0.2rem 0 0;
-  color: var(--text-secondary);
-  font-size: 0.78rem;
-}
-
 .field-label {
   color: var(--text-secondary);
   font-size: 0.78rem;
@@ -747,14 +716,6 @@ select.input-field {
   border-color: color-mix(in oklab, var(--accent-color), transparent 55%);
   background: var(--accent-soft);
   color: var(--accent-color);
-}
-
-.editor-actions {
-  gap: 0.6rem;
-}
-
-.editor-actions .btn {
-  width: 100%;
 }
 
 .puzzle-dialog {
@@ -995,10 +956,6 @@ hr {
 
   .form-actions .btn-primary {
     width: min(16rem, 100%);
-  }
-
-  .editor-actions .btn {
-    width: auto;
   }
 }
 

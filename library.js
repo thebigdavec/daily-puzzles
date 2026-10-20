@@ -15,6 +15,12 @@ export function puzzleUrlKey(value) {
     }
 }
 
+export function hasPuzzle(games, candidate) {
+    const key = puzzleUrlKey(candidate.url);
+    return games.some((game) => game.id === candidate.id ||
+        (key !== null && puzzleUrlKey(game.url) === key));
+}
+
 export function isInLibrary(url) {
     const key = puzzleUrlKey(url);
     return LIBRARY_GAMES.some((game) => puzzleUrlKey(game.url) === key);
@@ -61,17 +67,16 @@ export function initLibrary({ getGames, addGame }) {
     const search = document.getElementById('library-search');
     const category = document.getElementById('library-category');
     const status = document.getElementById('library-status');
+    for (const name of new Set(LIBRARY_GAMES.map((game) => game.category))) {
+        category.append(element('option', '', name));
+    }
 
     function renderLibrary() {
         const savedGames = getGames();
         const matches = filterLibrary(search.value, category.value)
             .map((game) => ({
                 game,
-                added: savedGames.some(
-                    (saved) =>
-                        saved.id === game.id ||
-                        puzzleUrlKey(saved.url) === puzzleUrlKey(game.url)
-                )
+                added: hasPuzzle(savedGames, game)
             }))
             .sort((a, b) => Number(a.added) - Number(b.added));
         document.getElementById('library-count').textContent =

@@ -245,3 +245,42 @@ test('a user adds a puzzle with only a name and link, without a library entry or
     assert.match(added.id, /^custom-/);
     assert.equal(added.defaultOrder, undefined);
 });
+
+test('active and muted menus share actions while keeping reset, mute and unmute distinct', () => {
+    const app = dashboard();
+    const custom = { id: 'custom', name: 'Custom puzzle', url: 'https://example.com/custom' };
+    const actions = (game, played) => [...app.context.getPuzzleActionMenuItems(game, played)
+        .matchAll(/data-action="([^"]+)"/g)].map((match) => match[1]);
+    assert.deepEqual(actions(custom, false), ['edit', 'copy', 'share', 'suggest', 'mute', 'remove']);
+    assert.deepEqual(actions(custom, true), ['reset', 'edit', 'copy', 'share', 'suggest', 'mute', 'remove']);
+    assert.deepEqual(actions({ ...custom, mutedUntil: Date.now() + 86400000 }, true),
+        ['edit', 'copy', 'share', 'suggest', 'resume', 'remove']);
+    const wordle = { id: 'wordle', url: 'https://www.nytimes.com/games/wordle' };
+    assert.ok(!actions(wordle, false).includes('suggest'));
+    assert.ok(!actions({ ...wordle, mutedUntil: Date.now() + 86400000 }, false).includes('suggest'));
+});
+
+test('shared menu bindings stop touch propagation and send actions for the right puzzle', () => {
+    const app = dashboard();
+    const trigger = { listeners: {}, addEventListener(name, run) { this.listeners[name] = run; }, setAttribute() {} };
+    const button = { ...trigger, listeners: {}, dataset: { action: 'resume' } };
+    const container = { querySelector: () => trigger, querySelectorAll: () => [button] };
+    const calls = [];
+    app.context.openPuzzleAction = (event, id, action) => calls.push({ id, action });
+    app.context.bindPuzzleActionMenu(container, { id: 'muted', name: 'Muted puzzle' });
+    let stopped = 0;
+    const event = { stopPropagation() { stopped++; } };
+    trigger.listeners.pointerdown(event);
+    button.listeners.touchstart(event);
+    button.onclick(event);
+    assert.equal(stopped, 2);
+    assert.deepEqual(calls, [{ id: 'muted', action: 'resume' }]);
+});
+
+test('the shared action dispatcher routes Unmute to resume rather than a dialog', () => {
+    const app = dashboard();
+    let resumed;
+    app.context.resumeGame = (event, id) => { resumed = id; };
+    app.context.window.openPuzzleAction({ stopPropagation() {} }, 'muted', 'resume');
+    assert.equal(resumed, 'muted');
+});

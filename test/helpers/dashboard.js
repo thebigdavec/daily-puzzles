@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import * as schedule from '../../reset-schedule.js';
-import { puzzleUrlKey } from '../../library.js';
+import { hasPuzzle, isInLibrary, puzzleUrlKey } from '../../library.js';
 import { DEFAULT_GAMES } from '../../library-games.js';
 
 const source = readFileSync(new URL('../../script.js', import.meta.url), 'utf8')
@@ -55,7 +55,7 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
     getField('reset-time').value = '04:00';
     getField('reset-time-zone').value = 'Europe/London';
     const context = {
-        ...schedule, puzzleUrlKey, DEFAULT_GAMES, URL,
+        ...schedule, hasPuzzle, isInLibrary, puzzleUrlKey, DEFAULT_GAMES, URL,
         document: {
             getElementById: getField,
             querySelectorAll: () => [],

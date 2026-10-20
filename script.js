@@ -1,5 +1,5 @@
 import { DEFAULT_GAMES } from './library-games.js?v=4';
-import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=4';
+import { hasPuzzle, initLibrary, isInLibrary, openPuzzleSuggestion } from './library.js?v=5';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -53,13 +53,7 @@ async function init() {
     initLibrary({
         getGames: () => state.games,
         async addGame(game) {
-            if (
-                state.games.some(
-                    (saved) =>
-                        saved.id === game.id ||
-                        puzzleUrlKey(saved.url) === puzzleUrlKey(game.url)
-                )
-            ) {
+            if (hasPuzzle(state.games, game)) {
                 return true;
             }
             state.games.push({ id: game.id, name: game.name, url: game.url });
@@ -69,12 +63,7 @@ async function init() {
         }
     });
     await checkDailyReset();
-    render();
-    updateDateDisplay();
-    updateResetSummary();
-    scheduleResetCheck();
-    scheduleRemovedGamesCleanup();
-    scheduleMutedGamesRefresh();
+    refreshDashboard();
 
     document.getElementById('import-games-file').addEventListener('change', handleImportFileChange);
     document.querySelectorAll('.pause-option').forEach((button) => {
@@ -536,6 +525,10 @@ function togglePuzzleActionMenu(event, id) {
 
 function openPuzzleAction(event, id, action) {
     event.stopPropagation();
+    if (action === 'resume') {
+        resumeGame(event, id);
+        return;
+    }
     if (action === 'copy') {
         copyPuzzleLink(id);
         return;
@@ -966,7 +959,7 @@ async function restoreRemovedGame(event, id) {
     }
 
     state.removedGames = state.removedGames.filter((game) => game.id !== id);
-    if (!state.games.some((game) => game.id === id || puzzleUrlKey(game.url) === puzzleUrlKey(gameToRestore.url))) {
+    if (!hasPuzzle(state.games, gameToRestore)) {
         state.games.push(gameToRestore);
     }
     if (!(await saveData())) return;
@@ -1050,6 +1043,7 @@ function getFaviconUrl(gameUrl) {
 }
 
 function getPuzzleActionMenuItems(game, isPlayed) {
+    const muted = isGameMuted(game);
     const actionButton = (action, label, icon, extraClass = '') => `
         <button type="button" role="menuitem" class="${extraClass}" data-action="${action}">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
@@ -1058,43 +1052,31 @@ function getPuzzleActionMenuItems(game, isPlayed) {
     `;
 
     return [
-        isPlayed ? actionButton('reset', 'Reset', '<path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>') : '',
+        isPlayed && !muted ? actionButton('reset', 'Reset', '<path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>') : '',
         actionButton('edit', 'Edit', '<path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path>'),
         actionButton('copy', 'Copy link', '<rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path>'),
         actionButton('share', 'Share link', '<path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path>'),
         !isInLibrary(game.url) ? actionButton('suggest', 'Suggest for library', '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 6 9 7 9-7"></path>') : '',
-        actionButton('mute', 'Mute', '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-1.4-1.2-2.7-2.2-4"></path><path d="m4 4 16 16"></path><path d="M10 21h4"></path>'),
+        muted
+            ? actionButton('resume', 'Unmute', '<circle cx="12" cy="12" r="8.5"></circle><path d="m10 8 6 4-6 4Z"></path>')
+            : actionButton('mute', 'Mute', '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-1.4-1.2-2.7-2.2-4"></path><path d="m4 4 16 16"></path><path d="M10 21h4"></path>'),
         actionButton('remove', 'Remove', '<path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path>', 'menu-action-remove')
     ].join('');
 }
 
-function getMutedPuzzleActionMenuItems(game) {
-    return `
-        <button type="button" role="menuitem" data-action="edit" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path></svg>
-            <span>Edit</span>
-        </button>
-        <button type="button" role="menuitem" data-action="copy" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path></svg>
-            <span>Copy link</span>
-        </button>
-        <button type="button" role="menuitem" data-action="share" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path></svg>
-            <span>Share link</span>
-        </button>
-        ${!isInLibrary(game.url) ? `<button type="button" role="menuitem" data-action="suggest" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 6 9 7 9-7"></path></svg>
-            <span>Suggest for library</span>
-        </button>` : ''}
-        <button type="button" role="menuitem" data-action="resume" onclick="resumeGame(event, this.dataset.puzzleId)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="m10 8 6 4-6 4Z"></path></svg>
-            <span>Unmute</span>
-        </button>
-        <button type="button" role="menuitem" class="menu-action-remove" data-action="remove" onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 13h10l1-13"></path><path d="M9 7V4h6v3"></path></svg>
-            <span>Remove</span>
-        </button>
-    `;
+function bindPuzzleActionMenu(container, game) {
+    const moreActionsButton = container.querySelector('.more-actions-btn');
+    moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
+    const actionMenuItems = container.querySelectorAll('.puzzle-action-menu button');
+    // Keep Sortable's card-wide touch handling away from the action menu.
+    ['pointerdown', 'touchstart'].forEach((eventName) => {
+        moreActionsButton.addEventListener(eventName, (event) => event.stopPropagation());
+        actionMenuItems.forEach((item) => item.addEventListener(eventName, (event) => event.stopPropagation()));
+    });
+    moreActionsButton.onclick = (event) => togglePuzzleActionMenu(event, game.id);
+    actionMenuItems.forEach((item) => {
+        item.onclick = (event) => openPuzzleAction(event, game.id, item.dataset.action);
+    });
 }
 
 function getPuzzleViewTransitionName(id) {
@@ -1177,18 +1159,7 @@ function render() {
         const puzzleLink = card.querySelector('.game-title');
         puzzleLink.textContent = game.name;
         puzzleLink.href = game.url;
-        const moreActionsButton = card.querySelector('.more-actions-btn');
-        moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
-        const actionMenuItems = card.querySelectorAll('.puzzle-action-menu button');
-        // Keep Sortable's card-wide touch handling away from the action menu.
-        ['pointerdown', 'touchstart'].forEach((eventName) => {
-            moreActionsButton.addEventListener(eventName, (event) => event.stopPropagation());
-            actionMenuItems.forEach((item) => item.addEventListener(eventName, (event) => event.stopPropagation()));
-        });
-        moreActionsButton.onclick = (event) => togglePuzzleActionMenu(event, game.id);
-        actionMenuItems.forEach((item) => {
-            item.onclick = (event) => openPuzzleAction(event, game.id, item.dataset.action);
-        });
+        bindPuzzleActionMenu(card, game);
         container.appendChild(card);
     });
 
@@ -1227,18 +1198,13 @@ function renderPausedGames() {
         actions.className = 'recently-removed-actions';
         actions.innerHTML = `
             <div class="action-menu-wrap">
-                <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${openActionMenuId === game.id}" onclick="togglePuzzleActionMenu(event, this.dataset.puzzleId)">•••</button>
+                <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${openActionMenuId === game.id}">•••</button>
                 <div class="puzzle-action-menu ${openActionMenuId === game.id ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
-                    ${getMutedPuzzleActionMenuItems(game)}
+                    ${getPuzzleActionMenuItems(game, false)}
                 </div>
             </div>
         `;
-        const moreActionsButton = actions.querySelector('.more-actions-btn');
-        moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
-        moreActionsButton.dataset.puzzleId = game.id;
-        actions.querySelectorAll('.puzzle-action-menu button').forEach((action) => {
-            action.dataset.puzzleId = game.id;
-        });
+        bindPuzzleActionMenu(actions, game);
         item.append(info, actions);
         list.appendChild(item);
     });

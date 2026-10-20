@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { DEFAULT_GAMES, LIBRARY_GAMES } from '../library-games.js';
 import {
     filterLibrary,
+    hasPuzzle,
+    initLibrary,
     isInLibrary,
     openPuzzleSuggestion,
     puzzleUrlKey,
@@ -47,14 +49,44 @@ test('restoring defaults uses library order without changing the catalogue or sa
     assert.ok(DEFAULT_GAMES.every((game) => Object.keys(game).sort().join(',') === 'id,name,url'));
 });
 
-test('every catalogue category has a filter, including quizzes', () => {
+test('category choices come from the catalogue, with All categories kept first', (t) => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
     const select = html.match(/<select id="library-category"[\s\S]*?<\/select>/)[0];
-    const categories = [...select.matchAll(/<option>([^<]+)<\/option>/g)].map((match) => match[1]);
-    for (const category of new Set(LIBRARY_GAMES.map((game) => game.category))) {
-        assert.ok(categories.includes(category), `${category} must be offered`);
-    }
+    assert.equal([...select.matchAll(/<option/g)].length, 1);
+    const options = [{ value: '', textContent: 'All categories' }];
+    const fields = {};
+    const previousDocument = globalThis.document;
+    globalThis.document = {
+        createElement(tag) {
+            return { tag, get value() { return this.textContent; } };
+        },
+        getElementById(id) {
+            return fields[id] ||= {
+                append(option) { options.push(option); },
+                addEventListener() {}
+            };
+        }
+    };
+    t.after(() => {
+        if (previousDocument === undefined) delete globalThis.document;
+        else globalThis.document = previousDocument;
+    });
+    initLibrary({ getGames: () => [], addGame: () => true });
+    assert.equal(options[0].textContent, 'All categories');
+    assert.equal(options[0].value, '');
+    assert.deepEqual(options.slice(1).map((option) => option.value),
+        [...new Set(LIBRARY_GAMES.map((game) => game.category))]);
+    assert.ok(options.slice(1).every((option) => option.tag === 'option'));
     assert.equal(filterLibrary('', 'Quiz').length, 2);
+});
+
+test('one membership rule matches IDs and equivalent links, including muted puzzles', () => {
+    const saved = [{ id: 'wordle', url: 'https://www.nytimes.com/games/wordle', mutedUntil: Date.now() + 86400000 }];
+    assert.equal(hasPuzzle(saved, { id: 'wordle', url: 'https://example.com/renamed' }), true);
+    assert.equal(hasPuzzle(saved, { id: 'renamed', url: 'http://nytimes.com/games/wordle/index.html' }), true);
+    assert.equal(hasPuzzle(saved, { id: 'other', url: 'https://example.com/other' }), false);
+    assert.equal(hasPuzzle([], saved[0]), false);
+    assert.equal(hasPuzzle([{ id: 'a', url: 'invalid' }], { id: 'b', url: 'also invalid' }), false);
 });
 
 test('catalogue has unique IDs and links and complete editorial details', () => {
