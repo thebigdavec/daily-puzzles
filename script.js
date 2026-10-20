@@ -414,6 +414,9 @@ function populateSettings() {
     const timeZones = typeof Intl.supportedValuesOf === 'function'
         ? Intl.supportedValuesOf('timeZone')
         : ['UTC', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Tokyo', 'Pacific/Auckland'];
+    if (state.timeZone !== DEVICE_TIME_ZONE && !timeZones.includes(state.timeZone)) {
+        timeZones.push(state.timeZone);
+    }
     timeZones.forEach((timeZone) => timeZoneSelect.add(new Option(timeZone, timeZone)));
     timeZoneSelect.value = state.timeZone;
 }
@@ -786,8 +789,8 @@ function handleImportFileChange(event) {
                 throw new Error('Invalid backup');
             }
             const games = normalizeImportedGames(backup.games);
-            if (backup.games.length && !games.length) {
-                throw new Error('No valid games');
+            if (games.length !== backup.games.length) {
+                throw new Error('Backup contains invalid puzzles or duplicate IDs');
             }
 
             if (!window.confirm('Replace your current puzzle list with this backup? Today\'s progress and bin will be cleared.')) {

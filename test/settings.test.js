@@ -70,3 +70,30 @@ test('storage failure rolls back settings and progress and allows retry', async 
     assert.equal(app.getSaved().resetTime, '09:00');
     assert.match(app.fields['settings-save-status'].textContent, /Settings saved/);
 });
+
+test('saved zones remain selected and survive time changes with full and fallback zone lists', async () => {
+    for (const supportedValuesOf of [() => ['Europe/London'], undefined]) {
+        for (const timeZone of ['UTC', 'US/Eastern', 'Europe/London', 'device']) {
+            const app = dashboard();
+            app.context.loadData();
+            app.state().timeZone = timeZone;
+            app.context.Intl = { DateTimeFormat: Intl.DateTimeFormat, supportedValuesOf };
+            app.context.Option = function(text, value) { return { text, value }; };
+            const options = [];
+            const select = {
+                replaceChildren() { options.length = 0; },
+                add(option) { options.push(option); },
+                set value(value) { this.selected = options.find(option => option.value === value)?.value || ''; },
+                get value() { return this.selected; }
+            };
+            app.fields['reset-time-zone'] = select;
+            app.context.populateSettings();
+            assert.equal(select.value, timeZone);
+            assert.equal(options.filter(option => option.value === timeZone).length, 1);
+            app.fields['reset-time'].value = '09:00';
+            await app.context.saveSettings();
+            assert.equal(JSON.parse(app.storage.value).timeZone, timeZone);
+            assert.equal(JSON.parse(app.storage.value).resetTime, '09:00');
+        }
+    }
+});

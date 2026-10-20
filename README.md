@@ -2,7 +2,7 @@
 
 Daily Puzzles is a small, browser-based dashboard for keeping a personal list of the puzzles you play each day. Add puzzle links, work through them in any order, and let the dashboard clear your opened state when your chosen puzzle day begins.
 
-It is intentionally a static site: there is no build step, account, server, or database. Your list and progress stay in your browser.
+It is intentionally a static site: there is no build step, account, server, or database. Your list and progress stay in your browser. The date shows “Loading date…” until the dashboard has loaded your settings.
 
 ## What it does
 
@@ -55,7 +55,7 @@ Opening `index.html` directly may work in some browsers, but using a local serve
 
 ## Daily reset behaviour
 
-Changes to the reset time and time zone save automatically on this device. Settings shows a confirmation after saving, or an error if the change could not be saved.
+Changes to the reset time and time zone save automatically on this device. Settings shows a confirmation after saving, or an error if the change could not be saved. Saved valid zones, including `UTC` and time-zone aliases, stay available even when the browser omits them from its suggested list.
 
 In **Settings**, choose a reset time and time zone. The dashboard treats the period between two reset times as one puzzle day. For example, with a `04:00` reset in `Europe/London`, a puzzle opened at 03:30 belongs to the previous puzzle day; it becomes available again at 04:00.
 
@@ -65,7 +65,7 @@ The scheduler uses browser-native `Date` and `Intl` APIs, so it works in Safari 
 
 ## Data and privacy
 
-All application state is stored locally in the browser under the `puzzle_dashboard_v3` localStorage key. Clearing site data or local storage resets the dashboard to its default puzzles. Use **Export** in Settings to keep a portable backup of a puzzle list, including an empty list; **Import** accepts that version 1 JSON backup on this or another device. Import accepts files up to 1 MB and asks before replacing your list and clearing progress and the Bin. Backups contain puzzle links and mute dates, not reset settings or played progress.
+All application state is stored locally in the browser under the `puzzle_dashboard_v3` localStorage key. Clearing site data or local storage resets the dashboard to its default puzzles. Use **Export** in Settings to keep a portable backup of a puzzle list, including an empty list; **Import** accepts that version 1 JSON backup on this or another device. Import accepts files up to 1 MB and asks before replacing your list and clearing progress and the Bin. A backup containing any invalid puzzle or repeated puzzle ID is rejected in full, leaving your current list and progress untouched. Backups contain puzzle links and mute dates, not reset settings or played progress.
 
 Loading saved data does not write it back. Read or write failures show an error and preserve the stored data. Saves use browser Web Locks to serialise writes across tabs and check that the saved copy is still current before replacing it.
 

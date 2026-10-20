@@ -232,6 +232,9 @@ test('empty-list backups round-trip; invalid backups never replace the saved lis
         { version: 1, games: [] },
         { version: 99, games: [] },
         { version: 1, games: [{ id: 'invalid' }] },
+        { version: 1, games: [custom, { id: 'invalid' }] },
+        { version: 1, games: [custom, { ...custom, url: 'javascript:alert(1)' }] },
+        { version: 1, games: [custom, { ...custom, name: 'Duplicate ID' }] },
         null
     ]) {
         const app = dashboard();
