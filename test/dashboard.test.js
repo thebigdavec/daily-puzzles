@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { DEFAULT_GAMES } from '../library-games.js';
 import { dashboard, makeLocks, makeStorage } from './helpers/dashboard.js';
 
 const custom = { id: 'custom', name: 'My puzzle', url: 'https://example.com/puzzle' };
@@ -149,7 +150,7 @@ test('permanent deletion of the final puzzle stays empty; defaults remain explic
     assert.equal(app.state().games.length, 0);
     app.context.window.confirm = () => true;
     await app.context.restoreDefaultGames();
-    assert.equal(app.state().games.length, 10);
+    assert.equal(app.state().games.length, DEFAULT_GAMES.length);
 });
 
 test('restoring a puzzle already active does not create a duplicate ID', async () => {
@@ -228,4 +229,19 @@ test('empty-list backups round-trip; invalid backups never replace the saved lis
             assert.equal(errors, 1);
         }
     }
+});
+
+test('a user adds a puzzle with only a name and link, without a library entry or default position', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    app.context.document.getElementById('new-game-name').value = 'My local puzzle';
+    app.context.document.getElementById('new-game-url').value = 'https://example.com/my-puzzle';
+    await app.context.addNewGame();
+    app.context.loadData();
+    assert.equal(app.state().games.length, 2);
+    const added = app.state().games[1];
+    assert.equal(added.name, 'My local puzzle');
+    assert.equal(added.url, 'https://example.com/my-puzzle');
+    assert.match(added.id, /^custom-/);
+    assert.equal(added.defaultOrder, undefined);
 });

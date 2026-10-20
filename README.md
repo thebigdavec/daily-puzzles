@@ -24,6 +24,14 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Keeps an intentionally empty list empty after reload. The empty view has a **Use default list** button, with **Library** and **Add** in the header. Restoring defaults asks before clearing progress and the Bin.
 - Refreshes other open tabs when the saved list changes. Conflicting saves load the latest data and ask you to retry, rather than overwrite it.
 
+## Default list
+
+Puzzle details live once, in `library-games.js`. Give a library entry a positive integer `defaultOrder` to include it in the default list: `1` appears first, `2` second, and so on. Each position must be unique. Leave `defaultOrder` out for puzzles available only in the library.
+
+New lists and **Use default list** use those entries in numbered order. Existing personal lists keep their saved names, links and order until the user restores defaults.
+
+The **Add** form still needs only a puzzle name and link. It appends the puzzle to the user's personal list, where it can be dragged into position. User-added puzzles need neither a library entry nor a `defaultOrder` value.
+
 ## Run locally
 
 Serve the project directory with any static file server, then open the local address it prints. For example, with Python 3:

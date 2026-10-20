@@ -6,6 +6,7 @@ const goatSource = 'https://clevergoat.com/';
 export const LIBRARY_GAMES = [
   {
     id: 'wordle',
+    defaultOrder: 1,
     name: 'Wordle',
     url: 'https://www.nytimes.com/games/wordle',
     category: 'Words',
@@ -14,6 +15,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'strands',
+    defaultOrder: 2,
     name: 'Strands',
     url: 'https://www.nytimes.com/games/strands',
     category: 'Words',
@@ -30,6 +32,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'waffle',
+    defaultOrder: 10,
     name: 'Waffle',
     url: 'https://wafflegame.net/daily',
     category: 'Words',
@@ -38,6 +41,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'categories',
+    defaultOrder: 3,
     name: 'Categories',
     url: 'https://categories.clevergoat.com/',
     category: 'Words',
@@ -46,6 +50,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'wordlinx',
+    defaultOrder: 4,
     name: 'WordLinx',
     url: 'https://sacsgames.com/wordlinx/',
     category: 'Words',
@@ -54,6 +59,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'onewordsearch',
+    defaultOrder: 7,
     name: 'OneWordSearch',
     url: 'https://puzzlist.com/onewordsearch/',
     category: 'Words',
@@ -62,6 +68,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'wordly',
+    defaultOrder: 8,
     name: 'Wordly',
     url: 'https://wordly.org/uk',
     category: 'Words',
@@ -149,6 +156,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'the-or-no-the',
+    defaultOrder: 6,
     name: 'The or No The',
     url: 'https://www.theornothe.com/',
     category: 'Quiz',
@@ -157,6 +165,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'chain',
+    defaultOrder: 5,
     name: 'Chain',
     url: 'https://playthechaingame.com/',
     category: 'Words',
@@ -166,6 +175,7 @@ export const LIBRARY_GAMES = [
   },
   {
     id: 'tightrope',
+    defaultOrder: 9,
     name: 'Tightrope',
     url: 'https://www.britannica.com/quiz/tightrope',
     category: 'Quiz',
@@ -177,3 +187,8 @@ export const LIBRARY_GAMES = [
   checkedOn: '2026-10-20',
   ...game
 }));
+
+export const DEFAULT_GAMES = LIBRARY_GAMES
+  .filter(game => game.defaultOrder !== undefined)
+  .sort((first, second) => first.defaultOrder - second.defaultOrder)
+  .map(({ id, name, url }) => ({ id, name, url }));

@@ -1,4 +1,5 @@
-import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=3';
+import { DEFAULT_GAMES } from './library-games.js?v=4';
+import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=4';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -8,19 +9,6 @@ import {
     normalizeResetSettings,
     resolveTimeZone
 } from './reset-schedule.js?v=3';
-
-const DEFAULT_GAMES = [
-    { id: 'wordle', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle' },
-    { id: 'strands', name: 'Strands', url: 'https://www.nytimes.com/games/strands' },
-    { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
-    { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
-    { id: 'chain', name: 'Chain', url: 'https://playthechaingame.com/' },
-    { id: 'the-or-no-the', name: 'The or No The', url: 'https://www.theornothe.com/' },
-    { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
-    { id: 'wordly', name: 'Wordly', url: 'https://wordly.org/uk' },
-    { id: 'tightrope', name: 'Tightrope', url: 'https://www.britannica.com/quiz/tightrope' },
-    { id: 'waffle', name: 'Waffle', url: 'https://wafflegame.net/daily' },
-];
 
 const STORAGE_KEY = 'puzzle_dashboard_v3';
 const REMOVED_GAME_RETENTION_DAYS = 7;

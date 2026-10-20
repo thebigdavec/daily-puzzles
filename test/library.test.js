@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { LIBRARY_GAMES } from '../library-games.js';
+import { DEFAULT_GAMES, LIBRARY_GAMES } from '../library-games.js';
 import {
     filterLibrary,
     isInLibrary,
@@ -12,14 +12,39 @@ import {
 import { runResetScheduleTests } from './reset-schedule.test.js';
 import { dashboard, makeStorage } from './helpers/dashboard.js';
 
-test('every default puzzle is available in the library with the same ID and link', () => {
+test('default positions are unique positive integers', () => {
+    const positions = LIBRARY_GAMES
+        .filter((game) => game.defaultOrder !== undefined)
+        .map((game) => game.defaultOrder);
+    assert.ok(positions.length > 0);
+    assert.ok(positions.every((position) => Number.isInteger(position) && position > 0));
+    assert.equal(new Set(positions).size, positions.length);
+});
+
+test('fresh lists use library details in default order and leave library-only puzzles out', () => {
     const app = dashboard(makeStorage(null));
     app.context.loadData();
+    assert.equal(app.state().games.length, LIBRARY_GAMES.filter((game) => game.defaultOrder !== undefined).length);
+    let previousPosition = 0;
     for (const game of app.state().games) {
-        assert.ok(LIBRARY_GAMES.some((entry) =>
-            entry.id === game.id && puzzleUrlKey(entry.url) === puzzleUrlKey(game.url)
-        ), `${game.name} must be in the library`);
+        const entry = LIBRARY_GAMES.find((entry) => entry.id === game.id);
+        assert.ok(entry, `${game.name} must be in the library`);
+        assert.equal(game.name, entry.name);
+        assert.equal(game.url, entry.url);
+        assert.ok(entry.defaultOrder > previousPosition, `${game.name} must follow its default position`);
+        previousPosition = entry.defaultOrder;
     }
+});
+
+test('restoring defaults uses library order without changing the catalogue or saved personal lists', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    assert.deepEqual(Array.from(app.state().games, (game) => game.id), ['wordle']);
+    app.state().games[0].name = 'My renamed puzzle';
+    assert.equal(LIBRARY_GAMES.find((game) => game.id === 'wordle').name, 'Wordle');
+    await app.context.restoreDefaultGames();
+    assert.deepEqual(JSON.parse(app.storage.value).games, DEFAULT_GAMES);
+    assert.ok(DEFAULT_GAMES.every((game) => Object.keys(game).sort().join(',') === 'id,name,url'));
 });
 
 test('every catalogue category has a filter, including quizzes', () => {
