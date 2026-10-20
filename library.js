@@ -1,4 +1,4 @@
-import { LIBRARY_GAMES } from './library-games.js';
+import { LIBRARY_GAMES } from './library-games.js?v=2';
 
 export function puzzleUrlKey(value) {
     try {
@@ -119,8 +119,12 @@ export function initLibrary({ getGames, addGame }) {
                     list.querySelectorAll('button:not(:disabled)')
                 ).indexOf(button);
                 const restoreFocus = document.activeElement === button;
-                addGame(game);
                 button.disabled = true;
+                if (!await addGame(game)) {
+                    button.disabled = false;
+                    status.textContent = 'Could not add this puzzle. Please try again.';
+                    return;
+                }
                 button.textContent = '✓ Added';
                 status.textContent = `${game.name} added to your list.`;
                 const animate =

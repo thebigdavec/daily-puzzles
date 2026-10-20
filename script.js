@@ -1,4 +1,4 @@
-import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js';
+import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=2';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -7,7 +7,7 @@ import {
     getPuzzleDay,
     normalizeResetSettings,
     resolveTimeZone
-} from './reset-schedule.js';
+} from './reset-schedule.js?v=3';
 
 const DEFAULT_GAMES = [
     { id: 'wordle', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle' },
@@ -15,7 +15,7 @@ const DEFAULT_GAMES = [
     { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
     { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
     { id: 'chain', name: 'Chain', url: 'https://playthechaingame.com/' },
-    { id: 'the-or-no-the', name: 'The or No The', url: 'https://www.theornothe.com/' }
+    { id: 'the-or-no-the', name: 'The or No The', url: 'https://www.theornothe.com/' },
     { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
     { id: 'wordly', name: 'Wordly', url: 'https://wordly.org/uk' },
     { id: 'tightrope', name: 'Tightrope', url: 'https://www.britannica.com/quiz/tightrope' },
@@ -29,7 +29,7 @@ const MAX_IMPORT_FILE_SIZE_BYTES = 1024 * 1024;
 const ACTION_MENU_EXIT_TRANSITION_MS = 90;
 
 let state = {
-    games: [],
+    games: DEFAULT_GAMES.map((game) => ({ ...game })),
     playedIds: [],
     removedGames: [],
     lastResetDate: '',
@@ -45,21 +45,26 @@ let editingGameId = null;
 let pendingPauseDays = 0;
 let openActionMenuId = null;
 
-function restoreDefaultGamesIfEmpty() {
-    if (state.games.length) {
-        return false;
+let savedData;
+let savedState = JSON.stringify(state);
+let lastWrite;
+
+async function init() {
+    if (!loadData()) {
+        render();
+        return;
     }
-
-    state.games = DEFAULT_GAMES.map((game) => ({ ...game }));
-    state.playedIds = [];
-    return true;
-}
-
-function init() {
-    loadData();
+    window.addEventListener('storage', async (event) => {
+        if (event.storageArea === localStorage && (event.key === STORAGE_KEY || event.key === null)) {
+            if (loadData()) {
+                await checkDailyReset();
+                refreshDashboard();
+            }
+        }
+    });
     initLibrary({
         getGames: () => state.games,
-        addGame(game) {
+        async addGame(game) {
             if (
                 state.games.some(
                     (saved) =>
@@ -67,14 +72,15 @@ function init() {
                         puzzleUrlKey(saved.url) === puzzleUrlKey(game.url)
                 )
             ) {
-                return;
+                return true;
             }
             state.games.push({ id: game.id, name: game.name, url: game.url });
-            saveData();
+            if (!(await saveData())) return false;
             render();
+            return true;
         }
     });
-    checkDailyReset();
+    await checkDailyReset();
     render();
     updateDateDisplay();
     updateResetSummary();
@@ -129,12 +135,14 @@ function init() {
         });
     }
 
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener('visibilitychange', async () => {
         if (!document.hidden) {
-            checkDailyReset();
+            await checkDailyReset();
             scheduleResetCheck();
-            if (removeExpiredRemovedGames() || clearExpiredGameMutes()) {
-                saveData();
+            const removed = removeExpiredRemovedGames();
+            const unmuted = clearExpiredGameMutes();
+            if (removed || unmuted) {
+                if (!(await saveData())) return;
             }
             render();
             scheduleRemovedGamesCleanup();
@@ -144,51 +152,89 @@ function init() {
 }
 
 function loadData() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-        restoreDefaultGamesIfEmpty();
-        state.removedGames = [];
-        state.lastResetDate = getPuzzleDay(undefined, state);
-        saveData();
-        return;
-    }
-
     try {
-        const parsed = JSON.parse(saved);
-        const savedGames = Array.isArray(parsed.games) ? parsed.games : [];
-        const savedPlayedIds = Array.isArray(parsed.playedIds) ? parsed.playedIds : [];
-        const savedRemovedGames = Array.isArray(parsed.removedGames) ? parsed.removedGames : [];
-        const resetSettings = normalizeResetSettings(parsed);
-        state.resetTime = resetSettings.resetTime;
-        state.timeZone = resetSettings.timeZone;
-        const savedDate = typeof parsed.lastResetDate === 'string' ? parsed.lastResetDate : '';
-
-        state.games = savedGames.map(normalizeGame).filter(Boolean);
-        clearExpiredGameMutes();
-        const restoredDefaultGames = restoreDefaultGamesIfEmpty();
-        state.playedIds = restoredDefaultGames
-            ? []
-            : savedPlayedIds.filter((id) => state.games.some((game) => game.id === id));
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved === null
+            ? { games: DEFAULT_GAMES, lastResetDate: getPuzzleDay() }
+            : JSON.parse(saved);
+        if (!parsed || !Array.isArray(parsed.games)) {
+            throw new Error('Invalid saved puzzle list');
+        }
+        const games = normalizeImportedGames(parsed.games);
         const now = Date.now();
-        state.removedGames = savedRemovedGames
-            .map((game) => normalizeRemovedGame(game, now))
-            .filter(Boolean)
-            .filter((game) => !state.games.some((activeGame) => activeGame.id === game.id))
-            .filter((game) => !isRemovedGameExpired(game, now));
-        state.lastResetDate = migrateLastResetDate(savedDate);
-        saveData();
+        state = {
+            games,
+            playedIds: Array.isArray(parsed.playedIds)
+                ? parsed.playedIds.filter((id) => games.some((game) => game.id === id))
+                : [],
+            removedGames: (Array.isArray(parsed.removedGames) ? parsed.removedGames : [])
+                .map((game) => normalizeRemovedGame(game, now))
+                .filter(Boolean)
+                .filter((game) => !games.some((active) => active.id === game.id))
+                .filter((game) => !isRemovedGameExpired(game, now)),
+            ...normalizeResetSettings(parsed)
+        };
+        state.lastResetDate = migrateLastResetDate(typeof parsed.lastResetDate === 'string' ? parsed.lastResetDate : '');
+        clearExpiredGameMutes();
+        savedData = saved;
+        savedState = JSON.stringify(state);
+        return true;
     } catch (error) {
-        console.error('Failed to parse saved data. Resetting to defaults.', error);
-        state.games = [];
-        restoreDefaultGamesIfEmpty();
-        state.removedGames = [];
-        state.lastResetDate = getPuzzleDay(undefined, state);
-        saveData();
+        console.error('Failed to read saved puzzles.', error);
+        showStorageError('Could not read saved puzzles. Existing browser data has been kept. Please reload to try again.');
+        return false;
     }
 }
 
-function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function saveData() {
+    const data = JSON.stringify(state);
+    const expected = savedData;
+    const previousWrite = lastWrite;
+    let conflict = false;
+    try {
+        await navigator.locks.request(STORAGE_KEY, () => {
+            const current = localStorage.getItem(STORAGE_KEY);
+            // Queued edits from this tab may follow our own write, never another tab's write.
+            if (current !== expected && (lastWrite === previousWrite || current !== lastWrite)) {
+                conflict = true;
+                throw new Error('Another tab changed the saved puzzles');
+            }
+            localStorage.setItem(STORAGE_KEY, data);
+            savedData = data;
+            savedState = data;
+            lastWrite = data;
+        });
+        document.getElementById('storage-status').hidden = true;
+        return true;
+    } catch (error) {
+        console.error('Failed to save puzzles.', error);
+        state = JSON.parse(savedState);
+        loadData();
+        refreshDashboard();
+        showStorageError(conflict
+            ? 'Another tab changed your puzzles. The latest data has been loaded. Please try your change again.'
+            : 'Could not save changes on this device. Your last saved data has been kept. Please try again.');
+        return false;
+    }
+}
+
+function showStorageError(message) {
+    const status = document.getElementById('storage-status');
+    status.textContent = message;
+    status.hidden = false;
+    document.getElementById('settings-save-status').textContent = message;
+}
+
+function refreshDashboard() {
+    render();
+    updateDateDisplay();
+    updateResetSummary();
+    scheduleResetCheck();
+    scheduleRemovedGamesCleanup();
+    scheduleMutedGamesRefresh();
+    if (document.getElementById('settings-menu').classList.contains('is-open')) {
+        populateSettings();
+    }
 }
 
 function normalizeGame(game) {
@@ -268,9 +314,9 @@ function scheduleRemovedGamesCleanup() {
         return;
     }
 
-    removedGamesTimer = setTimeout(() => {
+    removedGamesTimer = setTimeout(async () => {
         if (removeExpiredRemovedGames()) {
-            saveData();
+            if (!(await saveData())) return;
         }
         render();
         scheduleRemovedGamesCleanup();
@@ -306,13 +352,13 @@ function scheduleMutedGamesRefresh() {
         return;
     }
 
-    mutedGamesTimer = setTimeout(() => {
+    mutedGamesTimer = setTimeout(async () => {
         if (clearExpiredGameMutes()) {
-            saveData();
+            if (!(await saveData())) return;
         }
         render();
         scheduleMutedGamesRefresh();
-    }, Math.max(0, nextReturnAt - Date.now()) + 50);
+    }, Math.min(24 * 60 * 60 * 1000, Math.max(0, nextReturnAt - Date.now()) + 50));
 }
 
 function getSafeHttpUrl(value) {
@@ -339,12 +385,12 @@ function updateDateDisplay() {
     document.getElementById('current-date').innerText = new Intl.DateTimeFormat(undefined, options).format();
 }
 
-function checkDailyReset() {
+async function checkDailyReset() {
     const puzzleDay = getPuzzleDay(undefined, state);
     if (state.lastResetDate !== puzzleDay) {
         state.playedIds = [];
         state.lastResetDate = puzzleDay;
-        saveData();
+        if (!(await saveData())) return;
         render();
     }
     updateDateDisplay();
@@ -358,8 +404,8 @@ function scheduleResetCheck() {
     const now = new Date();
     const nextReset = getNextResetInstant(now, state);
     const delay = nextReset.getTime() - now.getTime() + 250;
-    resetTimer = setTimeout(() => {
-        checkDailyReset();
+    resetTimer = setTimeout(async () => {
+        await checkDailyReset();
         scheduleResetCheck();
     }, delay);
 }
@@ -373,6 +419,7 @@ function updateResetSummary() {
 }
 
 function populateSettings() {
+    document.getElementById('settings-save-status').textContent = 'Changes save automatically on this device.';
     const timeInput = document.getElementById('reset-time');
     const timeZoneSelect = document.getElementById('reset-time-zone');
     timeInput.value = state.resetTime;
@@ -405,23 +452,35 @@ function closeSettings() {
     menu.setAttribute('aria-hidden', 'true');
 }
 
-function saveSettings() {
+async function saveSettings() {
+    const timeInput = document.getElementById('reset-time');
+    const status = document.getElementById('settings-save-status');
+    if (!timeInput.reportValidity()) {
+        status.textContent = 'Choose a valid reset time. Changes have not been saved.';
+        return;
+    }
     const settings = normalizeResetSettings({
-        resetTime: document.getElementById('reset-time').value,
+        resetTime: timeInput.value,
         timeZone: document.getElementById('reset-time-zone').value
     });
-    state.resetTime = settings.resetTime;
-    state.timeZone = settings.timeZone;
-    checkDailyReset();
-    saveData();
-    closeSettings();
+    const puzzleDay = getPuzzleDay(undefined, settings);
+    state = {
+        ...state,
+        ...settings,
+        lastResetDate: puzzleDay,
+        playedIds: state.lastResetDate === puzzleDay ? state.playedIds : []
+    };
+    status.textContent = 'Saving settings…';
+    if (!(await saveData())) return;
+    status.textContent = `Settings saved on this device. Daily reset: ${settings.resetTime} (${settings.timeZone === DEVICE_TIME_ZONE ? 'device time zone' : settings.timeZone}).`;
+    render();
     updateDateDisplay();
     updateResetSummary();
     scheduleResetCheck();
 }
 
-function restoreDefaultGames() {
-    if (!window.confirm('Restore the original puzzle list? This removes custom puzzles and clears today\'s progress.')) {
+async function restoreDefaultGames() {
+    if (!window.confirm('Use the default puzzle list? This replaces your list and clears today\'s progress and the Bin.')) {
         return;
     }
 
@@ -429,7 +488,7 @@ function restoreDefaultGames() {
     state.playedIds = [];
     state.removedGames = [];
     state.lastResetDate = getPuzzleDay(undefined, state);
-    saveData();
+    if (!(await saveData())) return;
     closeSettings();
     render();
     scheduleRemovedGamesCleanup();
@@ -620,9 +679,9 @@ function closePuzzleActionMenu(afterClose) {
     fallbackTimer = setTimeout(finish, ACTION_MENU_EXIT_TRANSITION_MS + 60);
 }
 
-function resetPuzzle(id) {
+async function resetPuzzle(id) {
     state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
-    saveData();
+    if (!(await saveData())) return;
     const card = Array.from(document.querySelectorAll('.game-item')).find((item) => item.dataset.id === id);
     if (card) {
         card.classList.remove('played');
@@ -722,7 +781,7 @@ function getLocalDateInputValue(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
-function savePuzzleEdit() {
+async function savePuzzleEdit() {
     const game = getGameById(editingGameId);
     const name = document.getElementById('edit-game-name').value.trim();
     const url = getSafeHttpUrl(document.getElementById('edit-game-url').value.trim());
@@ -737,12 +796,12 @@ function savePuzzleEdit() {
 
     game.name = name;
     game.url = url;
-    saveData();
+    if (!(await saveData())) return;
     closePuzzleDialog('edit-puzzle-dialog');
     render();
 }
 
-function savePuzzleMute() {
+async function savePuzzleMute() {
     const game = getGameById(editingGameId);
     const returnDate = document.getElementById('edit-game-return-date').value;
     if (!game) {
@@ -751,13 +810,13 @@ function savePuzzleMute() {
 
     game.mutedUntil = pendingPauseDays === null && !returnDate ? game.mutedUntil : getPauseUntil();
     clearExpiredGameMutes();
-    saveData();
+    if (!(await saveData())) return;
     closePuzzleDialog('mute-puzzle-dialog');
     renderWithPuzzleTransition();
     scheduleMutedGamesRefresh();
 }
 
-function resumeGame(event, id) {
+async function resumeGame(event, id) {
     event.stopPropagation();
     const game = getGameById(id);
     if (!game) {
@@ -767,7 +826,7 @@ function resumeGame(event, id) {
     if (openActionMenuId) {
         closePuzzleActionMenu();
     }
-    saveData();
+    if (!(await saveData())) return;
     renderWithPuzzleTransition();
     scheduleMutedGamesRefresh();
 }
@@ -776,7 +835,7 @@ function formatReturnDate(timestamp) {
     return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(timestamp);
 }
 
-function addNewGame() {
+async function addNewGame() {
     const nameInput = document.getElementById('new-game-name');
     const urlInput = document.getElementById('new-game-url');
 
@@ -799,10 +858,10 @@ function addNewGame() {
         url: safeUrl
     });
 
+    if (!(await saveData())) return;
     nameInput.value = '';
     urlInput.value = '';
     closeAddMenu();
-    saveData();
     renderWithPuzzleTransition();
 }
 
@@ -843,12 +902,14 @@ function handleImportFileChange(event) {
 
     const reader = new FileReader();
     reader.onerror = () => alert('The selected backup file could not be read.');
-    reader.onload = () => {
+    reader.onload = async () => {
         try {
             const backup = JSON.parse(reader.result);
-            const games = Array.isArray(backup.games) ? normalizeImportedGames(backup.games) : [];
-
-            if (!games.length) {
+            if (!backup || backup.version !== 1 || !Array.isArray(backup.games)) {
+                throw new Error('Invalid backup');
+            }
+            const games = normalizeImportedGames(backup.games);
+            if (backup.games.length && !games.length) {
                 throw new Error('No valid games');
             }
 
@@ -860,7 +921,7 @@ function handleImportFileChange(event) {
             state.playedIds = [];
             state.removedGames = [];
             state.lastResetDate = getPuzzleDay(undefined, state);
-            saveData();
+            if (!(await saveData())) return;
             render();
             scheduleRemovedGamesCleanup();
             scheduleMutedGamesRefresh();
@@ -872,7 +933,7 @@ function handleImportFileChange(event) {
     reader.readAsText(file);
 }
 
-function removeGameById(id) {
+async function removeGameById(id) {
     const gameToRemove = state.games.find((game) => game.id === id);
     if (!gameToRemove) {
         return;
@@ -881,9 +942,8 @@ function removeGameById(id) {
     state.games = state.games.filter((game) => game.id !== id);
     state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
     state.removedGames = [{ ...gameToRemove, removedAt: Date.now() }, ...state.removedGames.filter((game) => game.id !== id)];
-    restoreDefaultGamesIfEmpty();
 
-    saveData();
+    if (!(await saveData())) return;
     renderWithPuzzleTransition();
     scheduleRemovedGamesCleanup();
 }
@@ -896,7 +956,7 @@ function sendPuzzleToBin() {
     }
 }
 
-function removePuzzleImmediately() {
+async function removePuzzleImmediately() {
     const id = editingGameId;
     closePuzzleDialog('remove-puzzle-dialog');
     if (!id) {
@@ -905,13 +965,12 @@ function removePuzzleImmediately() {
 
     state.games = state.games.filter((game) => game.id !== id);
     state.playedIds = state.playedIds.filter((playedId) => playedId !== id);
-    restoreDefaultGamesIfEmpty();
-    saveData();
+    if (!(await saveData())) return;
     renderWithPuzzleTransition();
     scheduleMutedGamesRefresh();
 }
 
-function restoreRemovedGame(event, id) {
+async function restoreRemovedGame(event, id) {
     event.stopPropagation();
     const gameToRestore = state.removedGames.find((game) => game.id === id);
     if (!gameToRestore) {
@@ -919,50 +978,58 @@ function restoreRemovedGame(event, id) {
     }
 
     state.removedGames = state.removedGames.filter((game) => game.id !== id);
-    state.games.push(gameToRestore);
-    saveData();
+    if (!state.games.some((game) => game.id === id || puzzleUrlKey(game.url) === puzzleUrlKey(gameToRestore.url))) {
+        state.games.push(gameToRestore);
+    }
+    if (!(await saveData())) return;
     renderWithPuzzleTransition();
     scheduleRemovedGamesCleanup();
 }
 
-function permanentlyRemoveGame(event, id) {
+async function permanentlyRemoveGame(event, id) {
     event.stopPropagation();
     state.removedGames = state.removedGames.filter((game) => game.id !== id);
-    saveData();
+    if (!(await saveData())) return;
     render();
     scheduleRemovedGamesCleanup();
 }
 
-function handleCardClick(event, id, url) {
+async function handleCardClick(event, id, url) {
     // The whole card is a play target, but its controls must never fall
     // through to it. This extra guard is important on touch devices, where a
     // tap can be delivered after a pointer or drag event has already run.
-    if (isDragging || event.target.closest('button, a, input, select, textarea, label')) {
+    if (isDragging) {
+        event.preventDefault();
+        return;
+    }
+    if (event.target.closest('button, input, select, textarea, label')) {
         return;
     }
 
+    const card = event.currentTarget;
+    if (!event.target.closest('a')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
     if (openActionMenuId) {
         closePuzzleActionMenu();
     }
 
     if (!state.playedIds.includes(id)) {
         state.playedIds.push(id);
-        saveData();
-        event.currentTarget.classList.add('played');
+        if (!(await saveData())) return;
+        card.classList.add('played');
         updateProgress();
     }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-function resetManual() {
+async function resetManual() {
     state.playedIds = [];
     state.lastResetDate = getPuzzleDay(undefined, state);
-    saveData();
+    if (!(await saveData())) return;
     render();
 }
 
-function reorderGames(idList) {
+async function reorderGames(idList) {
     const activeGames = state.games.filter((game) => !isGameMuted(game));
     const reordered = idList
         .map((id) => activeGames.find((game) => game.id === id))
@@ -974,7 +1041,7 @@ function reorderGames(idList) {
 
     let nextActiveGame = 0;
     state.games = state.games.map((game) => isGameMuted(game) ? game : reordered[nextActiveGame++]);
-    saveData();
+    if (!(await saveData())) return;
     updateProgress();
 }
 
@@ -994,12 +1061,9 @@ function getFaviconUrl(gameUrl) {
     }
 }
 
-function getPuzzleActionMenuItems(game, isPlayed, useInlineHandlers = false) {
-    const inlineHandler = useInlineHandlers
-        ? ' onclick="openPuzzleAction(event, this.dataset.puzzleId, this.dataset.action)"'
-        : '';
+function getPuzzleActionMenuItems(game, isPlayed) {
     const actionButton = (action, label, icon, extraClass = '') => `
-        <button type="button" role="menuitem" class="${extraClass}" data-action="${action}"${inlineHandler}>
+        <button type="button" role="menuitem" class="${extraClass}" data-action="${action}">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
             <span>${label}</span>
         </button>
@@ -1068,6 +1132,19 @@ function render() {
 
     clearExpiredGameMutes();
 
+    if (!state.games.length) {
+        const empty = document.createElement('p');
+        empty.className = 'library-copy';
+        empty.textContent = 'Your list is empty. Choose puzzles from the Library or use Add.';
+        container.appendChild(empty);
+        const defaultsButton = document.createElement('button');
+        defaultsButton.type = 'button';
+        defaultsButton.className = 'btn btn-primary';
+        defaultsButton.textContent = 'Use default list';
+        defaultsButton.onclick = restoreDefaultGames;
+        container.appendChild(defaultsButton);
+    }
+
     state.games.filter((game) => !isGameMuted(game)).forEach((game) => {
         const isPlayed = state.playedIds.includes(game.id);
         const favicon = getFaviconUrl(game.url);
@@ -1095,7 +1172,7 @@ function render() {
                                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                             </svg>
                         </div>
-                        <span class="game-title"></span>
+                        <a class="game-title" target="_blank" rel="noopener noreferrer"></a>
                     </div>
                 </div>
                 <div class="game-actions">
@@ -1109,7 +1186,9 @@ function render() {
             </div>
         `;
 
-        card.querySelector('.game-title').textContent = game.name;
+        const puzzleLink = card.querySelector('.game-title');
+        puzzleLink.textContent = game.name;
+        puzzleLink.href = game.url;
         const moreActionsButton = card.querySelector('.more-actions-btn');
         moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
         const actionMenuItems = card.querySelectorAll('.puzzle-action-menu button');
@@ -1185,9 +1264,7 @@ function renderRecentlyRemoved() {
 
     list.innerHTML = '';
 
-    if (removeExpiredRemovedGames()) {
-        saveData();
-    }
+    removeExpiredRemovedGames();
 
     if (!state.removedGames.length) {
         section.hidden = true;

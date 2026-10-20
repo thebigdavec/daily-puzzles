@@ -50,10 +50,31 @@ function testUsesFirstOccurrenceWhenClocksGoBack() {
 }
 
 function testDefaultsInvalidSettings() {
+    assertDeepEqual(normalizeResetSettings(), {
+        resetTime: '00:00',
+        timeZone: DEVICE_TIME_ZONE
+    }, 'Missing settings');
     assertDeepEqual(normalizeResetSettings({ resetTime: '25:99', timeZone: 'Not/AZone' }), {
         resetTime: '00:00',
         timeZone: DEVICE_TIME_ZONE
     }, 'Invalid settings');
+}
+
+function testRepeatedHourKeepsPuzzleDay() {
+    const settings = { timeZone: 'Europe/London', resetTime: '01:30' };
+    assertEqual(getPuzzleDay('2026-10-25T00:29:59Z', settings), '2026-10-24', 'Before first reset');
+    for (const now of ['2026-10-25T00:30:00Z', '2026-10-25T00:45:00Z', '2026-10-25T01:00:00Z', '2026-10-25T01:10:00Z', '2026-10-25T01:30:00Z']) {
+        assertEqual(getPuzzleDay(now, settings), '2026-10-25', 'Puzzle day stays forward through repeated hour');
+        assertEqual(getNextResetInstant(now, settings).toISOString(), '2026-10-26T01:30:00.000Z', 'Next reset is tomorrow');
+    }
+}
+
+function testSkippedHourUsesOneBoundary() {
+    const settings = { timeZone: 'Europe/London', resetTime: '01:30' };
+    assertEqual(getPuzzleDay('2026-03-29T01:00:00Z', settings), '2026-03-28', 'Before shifted reset');
+    assertEqual(getNextResetInstant('2026-03-29T01:00:00Z', settings).toISOString(), '2026-03-29T01:30:00.000Z', 'Missing time shifts forward');
+    assertEqual(getPuzzleDay('2026-03-29T01:30:00Z', settings), '2026-03-29', 'At shifted reset');
+    assertEqual(getNextResetInstant('2026-03-29T01:30:00Z', settings).toISOString(), '2026-03-30T00:30:00.000Z', 'Next reset is tomorrow');
 }
 
 const tests = [
@@ -61,7 +82,9 @@ const tests = [
     ['calculates puzzle days independently in distant time zones', testUsesDistantTimeZones],
     ['uses civil time across the UK daylight-saving transition', testUsesCivilTimeAcrossDaylightSaving],
     ['uses the first occurrence when clocks go back', testUsesFirstOccurrenceWhenClocksGoBack],
-    ['defaults invalid or legacy settings to midnight in the device timezone', testDefaultsInvalidSettings]
+    ['defaults invalid or legacy settings to midnight in the device timezone', testDefaultsInvalidSettings],
+    ['keeps the puzzle day and next reset consistent through the repeated hour', testRepeatedHourKeepsPuzzleDay],
+    ['uses the same boundary for a reset in the skipped spring hour', testSkippedHourUsesOneBoundary]
 ];
 
 export function runResetScheduleTests() {

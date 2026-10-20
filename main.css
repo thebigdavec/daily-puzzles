@@ -266,6 +266,12 @@ body.app {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+  text-decoration: none;
+}
+
+.game-title:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
 }
 
 .game-logo {
@@ -290,19 +296,6 @@ body.app {
   align-items: center;
   flex: 0 0 auto;
   justify-content: flex-end;
-}
-
-.btn-edit {
-  border-color: color-mix(in oklab, var(--accent-color), transparent 72%);
-  background: color-mix(in oklab, var(--accent-color), transparent 91%);
-  color: var(--accent-color);
-  font-size: 0.74rem;
-  white-space: nowrap;
-}
-
-.btn-edit:hover,
-.btn-edit.is-selected {
-  background: color-mix(in oklab, var(--accent-color), transparent 83%);
 }
 
 .action-menu-wrap {

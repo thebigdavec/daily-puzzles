@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { LIBRARY_GAMES } from '../library-games.js';
 import {
     filterLibrary,
@@ -9,6 +10,16 @@ import {
     suggestionEmail
 } from '../library.js';
 import { runResetScheduleTests } from './reset-schedule.test.js';
+
+test('every catalogue category has a filter, including quizzes', () => {
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const select = html.match(/<select id="library-category"[\s\S]*?<\/select>/)[0];
+    const categories = [...select.matchAll(/<option>([^<]+)<\/option>/g)].map((match) => match[1]);
+    for (const category of new Set(LIBRARY_GAMES.map((game) => game.category))) {
+        assert.ok(categories.includes(category), `${category} must be offered`);
+    }
+    assert.equal(filterLibrary('', 'Quiz').length, 2);
+});
 
 test('catalogue has unique IDs and links and complete editorial details', () => {
     assert.equal(

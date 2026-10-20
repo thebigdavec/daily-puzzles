@@ -8,7 +8,7 @@
     <meta name="description"
         content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css?v=22">
+    <link rel="stylesheet" href="main.css?v=23">
     <link rel="stylesheet" href="library.css?v=1">
 </head>
 
@@ -56,6 +56,7 @@
                 </button>
             </div>
         </header>
+        <p id="storage-status" class="library-copy" role="alert" hidden></p>
 
         <!-- Manage Puzzles Form -->
         <div id="add-menu" class="add-menu" aria-hidden="true">
@@ -112,13 +113,16 @@
                             <div>
                                 <h5>Reset Time</h5>
                                 <label class="field-label" for="reset-time">Choose time</label>
-                                <input id="reset-time" class="input-field" type="time" value="00:00" required>
+                                <input id="reset-time" class="input-field" type="time" value="00:00" required
+                                    onchange="saveSettings()">
                             </div>
                             <div>
                                 <h5>Time Zone</h5>
                                 <label class="field-label" for="reset-time-zone">Choose time zone</label>
-                                <select id="reset-time-zone" class="input-field"></select>
+                                <select id="reset-time-zone" class="input-field" onchange="saveSettings()"></select>
                             </div>
+                            <p id="settings-save-status" class="settings-defaults-copy" role="status" aria-live="polite"
+                                aria-atomic="true">Changes save automatically on this device.</p>
                         </div>
                         <hr>
                         <h4 class="settings-defaults-title">Puzzle list</h4>
@@ -165,9 +169,6 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-actions">
-                        <button onclick="saveSettings()" class="btn btn-primary btn-block">Save settings</button>
                     </div>
                 </div>
             </div>
@@ -312,6 +313,7 @@
                             <option>Numbers</option>
                             <option>Logic</option>
                             <option>Geography</option>
+                            <option>Quiz</option>
                         </select>
                     </label>
                 </div>
@@ -429,7 +431,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script type="module" src="script.js?v=26"></script>
+    <script type="module" src="script.js?v=28"></script>
 </body>
 
 </html>

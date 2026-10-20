@@ -79,6 +79,9 @@ export function getDeviceTimeZone() {
 }
 
 export function isValidTimeZone(timeZone) {
+    if (typeof timeZone !== 'string' || !timeZone) {
+        return false;
+    }
     if (timeZone === DEVICE_TIME_ZONE) {
         return true;
     }
@@ -108,11 +111,13 @@ export function resolveTimeZone(timeZone) {
 
 export function getPuzzleDay(now, settings = {}) {
     const { resetTime, timeZone } = normalizeResetSettings(settings);
-    const local = getDateParts(toDate(now), resolveTimeZone(timeZone));
+    const instant = toDate(now);
+    const resolvedTimeZone = resolveTimeZone(timeZone);
+    const local = getDateParts(instant, resolvedTimeZone);
     const reset = getResetTimeParts(resetTime);
     const date = new Date(Date.UTC(local.year, local.month - 1, local.day));
 
-    if (local.hour < reset.hour || (local.hour === reset.hour && local.minute < reset.minute)) {
+    if (instant < getZonedDateTime(local.year, local.month, local.day, reset.hour, reset.minute, resolvedTimeZone)) {
         date.setUTCDate(date.getUTCDate() - 1);
     }
 
@@ -122,13 +127,16 @@ export function getPuzzleDay(now, settings = {}) {
 export function getNextResetInstant(now, settings = {}) {
     const { resetTime, timeZone } = normalizeResetSettings(settings);
     const resolvedTimeZone = resolveTimeZone(timeZone);
-    const local = getDateParts(toDate(now), resolvedTimeZone);
+    const instant = toDate(now);
+    const local = getDateParts(instant, resolvedTimeZone);
     const reset = getResetTimeParts(resetTime);
     const nextDate = new Date(Date.UTC(local.year, local.month - 1, local.day));
 
-    if (local.hour > reset.hour || (local.hour === reset.hour && local.minute >= reset.minute)) {
-        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    const todayReset = getZonedDateTime(local.year, local.month, local.day, reset.hour, reset.minute, resolvedTimeZone);
+    if (instant < todayReset) {
+        return todayReset;
     }
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
 
     return getZonedDateTime(
         nextDate.getUTCFullYear(),
