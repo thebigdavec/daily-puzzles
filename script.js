@@ -927,9 +927,8 @@ async function movePuzzle(id, direction) {
     const game = getGameById(id);
     [ids[index], ids[next]] = [ids[next], ids[index]];
     if (!await reorderGames(ids)) return;
-    render();
+    renderWithPuzzleTransition(id);
     document.getElementById('dashboard-status').textContent = `${game.name} moved ${direction < 0 ? 'up' : 'down'}.`;
-    focusPuzzleActions(id);
 }
 
 function focusPuzzleActions(id) {

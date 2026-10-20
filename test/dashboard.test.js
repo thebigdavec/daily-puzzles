@@ -330,6 +330,26 @@ test('keyboard moves persist only active order, keep muted slots and refuse move
     assert.deepEqual(JSON.parse(app.storage.value).games.map(game => game.id), ['other', 'muted', 'wordle']);
 });
 
+test('menu moves animate the reordered cards and return focus, with a reduced-motion fallback', async () => {
+    for (const reducedMotion of [false, true]) {
+        const app = dashboard();
+        app.context.loadData();
+        app.state().games.push(custom);
+        await app.context.saveData();
+        const calls = [];
+        app.context.window.matchMedia = () => ({ matches: reducedMotion });
+        app.context.document.startViewTransition = update => {
+            calls.push('transition');
+            update();
+        };
+        app.context.render = () => calls.push('render');
+        app.context.focusPuzzleActions = id => calls.push(id);
+        await app.context.movePuzzle('wordle', 1);
+        assert.deepEqual(calls, reducedMotion ? ['render', 'wordle'] : ['transition', 'render', 'wordle']);
+        assert.deepEqual(JSON.parse(app.storage.value).games.map(game => game.id), ['custom', 'wordle']);
+    }
+});
+
 test('blank names and unsafe links get field validation without writing a puzzle', async () => {
     const app = dashboard();
     app.context.loadData();
@@ -346,7 +366,7 @@ test('blank names and unsafe links get field validation without writing a puzzle
     assert.equal(app.storage.writes, 0);
 });
 
-test('opened state is visible and connected to its link for assistive technology', () => {
+test('opened state remains connected to its link for assistive technology', () => {
     const app = dashboard();
     const label = { id: 'opened-label', hidden: true };
     const link = { setAttribute(name, value) { this[name] = value; }, removeAttribute(name) { delete this[name]; } };

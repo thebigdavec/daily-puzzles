@@ -78,7 +78,6 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
     };
     runInNewContext(`${source}
         render = updateDateDisplay = updateResetSummary = updateProgress = () => {};
-        renderWithPuzzleTransition = () => {};
         window.getState = () => state;
         window.selectGame = (id) => { editingGameId = id; };
         window.setDragging = (value) => { isDragging = value; };

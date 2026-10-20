@@ -13,8 +13,8 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Lets visitors suggest puzzles by preparing an email to `dave@davecollison.dev`. Visitors send the draft from their email app; suggestions do not publish automatically.
 - Lets you add your own HTTP or HTTPS puzzle links using a name and link. Enter submits the Add form, missing or invalid fields receive browser validation, and a visible message confirms a successful addition.
 - Lets you rename a puzzle, change its link, or mute it temporarily; muted puzzles remain available through the three-dot action menu.
-- Opens a puzzle in a new tab and marks it **Opened today** when you select its card or activate its keyboard-accessible title link. Opening a link records a visit, not completion of the game.
-- Shows how many puzzles you have opened today, with text labels and announced progress updates.
+- Opens a puzzle in a new tab and highlights its card when you select it or activate its keyboard-accessible title link. Opening a link records a visit, not completion of the game.
+- Shows how many puzzles you have opened today, with screen-reader labels and announced progress updates. Status announcements do not add visible notifications to the list.
 - Supports drag-and-drop reordering from the handle, including on touch devices. The rest of each card scrolls normally. **Move up** and **Move down** in the action popover also work with a keyboard.
 - Resets played puzzles manually or automatically at a configurable time.
 - Lets you use either the device time zone or a specific IANA time zone, such as `Europe/London`.
