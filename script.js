@@ -92,7 +92,6 @@ async function init() {
         });
     });
     window.addEventListener('resize', closePuzzleActionMenu);
-    window.addEventListener('scroll', closePuzzleActionMenu, { passive: true });
     const list = document.getElementById('game-list');
     if (window.Sortable) {
         Sortable.create(list, {
