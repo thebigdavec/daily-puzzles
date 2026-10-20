@@ -1,5 +1,5 @@
 import { DEFAULT_GAMES } from './library-games.js?v=4';
-import { hasPuzzle, initLibrary, isInLibrary, openPuzzleSuggestion } from './library.js?v=5';
+import { hasPuzzle, initLibrary, isInLibrary, openPuzzleSuggestion } from './library.js?v=6';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,
@@ -14,7 +14,6 @@ const STORAGE_KEY = 'puzzle_dashboard_v3';
 const REMOVED_GAME_RETENTION_DAYS = 7;
 const REMOVED_GAME_RETENTION_MS = REMOVED_GAME_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 const MAX_IMPORT_FILE_SIZE_BYTES = 1024 * 1024;
-const ACTION_MENU_EXIT_TRANSITION_MS = 90;
 
 let state = {
     games: DEFAULT_GAMES.map((game) => ({ ...game })),
@@ -31,13 +30,21 @@ let removedGamesTimer = null;
 let mutedGamesTimer = null;
 let editingGameId = null;
 let pendingPauseDays = 0;
-let openActionMenuId = null;
 
 let savedData;
 let savedState = JSON.stringify(state);
 let lastWrite;
 
 async function init() {
+    document.getElementById('add-puzzle-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        addNewGame();
+    });
+    ['new-game-name', 'new-game-url'].forEach((id) => {
+        const input = document.getElementById(id);
+        input.addEventListener('input', () => input.setCustomValidity(''));
+    });
+
     if (!loadData()) {
         render();
         return;
@@ -84,16 +91,13 @@ async function init() {
             }
         });
     });
-    document.addEventListener('click', (event) => {
-        if (openActionMenuId && !event.target.closest('.action-menu-wrap')) {
-            closePuzzleActionMenu();
-        }
-    });
-
+    window.addEventListener('resize', closePuzzleActionMenu);
+    window.addEventListener('scroll', closePuzzleActionMenu, { passive: true });
     const list = document.getElementById('game-list');
     if (window.Sortable) {
         Sortable.create(list, {
             animation: 250,
+            handle: '.drag-handle',
             delay: 100,
             delayOnTouchOnly: false,
             touchStartThreshold: 5,
@@ -391,8 +395,9 @@ function updateResetSummary() {
     const timeZone = state.timeZone === DEVICE_TIME_ZONE
         ? `your device timezone (${getDeviceTimeZone()})`
         : state.timeZone;
+    document.getElementById('reset-time-zone-name').textContent = timeZone;
     document.getElementById('reset-summary').innerText =
-        `Open any puzzle • Drag anywhere to reorder • Resets daily at ${state.resetTime} (${timeZone})`;
+        `Open any puzzle • Drag the handle to reorder • Resets daily at ${state.resetTime} (${timeZone})`;
 }
 
 function populateSettings() {
@@ -402,7 +407,7 @@ function populateSettings() {
     timeInput.value = state.resetTime;
     timeZoneSelect.replaceChildren();
 
-    const deviceOption = new Option(`Use device timezone (${getDeviceTimeZone()})`, DEVICE_TIME_ZONE);
+    const deviceOption = new Option(`Device: ${getDeviceTimeZone()}`, DEVICE_TIME_ZONE);
     timeZoneSelect.add(deviceOption);
     const timeZones = typeof Intl.supportedValuesOf === 'function'
         ? Intl.supportedValuesOf('timeZone')
@@ -473,23 +478,12 @@ async function restoreDefaultGames() {
 }
 
 function openAddMenu() {
-    const menu = document.getElementById('add-menu');
-    if (menu.classList.contains('is-open')) {
-        closeAddMenu();
-        return;
-    }
     closeSettings();
-    menu.classList.add('is-open');
-    menu.setAttribute('aria-hidden', 'false');
+    document.getElementById('add-menu').showModal();
 }
 
 function closeAddMenu() {
-    const menu = document.getElementById('add-menu');
-    if (!menu.classList.contains('is-open')) {
-        return;
-    }
-    menu.classList.remove('is-open');
-    menu.setAttribute('aria-hidden', 'true');
+    document.getElementById('add-menu').close();
 }
 
 function getGameById(id) {
@@ -504,62 +498,21 @@ function canUseViewTransitions() {
     return typeof document.startViewTransition === 'function' && !prefersReducedMotion();
 }
 
-function togglePuzzleActionMenu(event, id) {
-    event.stopPropagation();
-    if (openActionMenuId === id) {
-        closePuzzleActionMenu();
-        return;
-    }
-
-    if (openActionMenuId) {
-        closePuzzleActionMenu(() => {
-            openActionMenuId = id;
-            render();
-        });
-        return;
-    }
-
-    openActionMenuId = id;
-    render();
-}
-
 function openPuzzleAction(event, id, action) {
     event.stopPropagation();
-    if (action === 'resume') {
-        resumeGame(event, id);
-        return;
-    }
-    if (action === 'copy') {
-        copyPuzzleLink(id);
-        return;
-    }
-    if (action === 'share') {
-        sharePuzzleLink(id);
-        return;
-    }
-
+    closePuzzleActionMenu();
+    if (action === 'resume') return resumeGame(event, id);
+    if (action === 'copy') return copyPuzzleLink(id);
+    if (action === 'share') return sharePuzzleLink(id);
+    if (action === 'up' || action === 'down') return movePuzzle(id, action === 'up' ? -1 : 1);
+    if (action === 'reset') return resetPuzzle(id);
+    if (action === 'edit') return openPuzzleEditDialog(id);
+    if (action === 'mute') return openPuzzleMuteDialog(id);
+    if (action === 'remove') return openPuzzleRemoveDialog(id);
     if (action === 'suggest') {
         const game = getGameById(id);
-        if (game) closePuzzleActionMenu(() => openPuzzleSuggestion(game));
-        return;
+        if (game) openPuzzleSuggestion(game);
     }
-
-    if (action !== 'reset' && canUseViewTransitions()) {
-        openActionMenuDialog(action, id);
-        return;
-    }
-
-    closePuzzleActionMenu(() => {
-        if (action === 'reset') {
-            resetPuzzle(id);
-        } else if (action === 'edit') {
-            openPuzzleEditDialog(id);
-        } else if (action === 'mute') {
-            openPuzzleMuteDialog(id);
-        } else {
-            openPuzzleRemoveDialog(id);
-        }
-    });
 }
 
 async function sharePuzzleLink(id) {
@@ -601,63 +554,8 @@ async function copyPuzzleLink(id) {
     }
 }
 
-function openActionMenuDialog(action, id) {
-    openActionMenuId = null;
-    document.documentElement.classList.add('is-action-dialog-transition');
-    const transition = document.startViewTransition(() => {
-        render();
-        if (action === 'edit') {
-            openPuzzleEditDialog(id);
-        } else if (action === 'mute') {
-            openPuzzleMuteDialog(id);
-        } else {
-            openPuzzleRemoveDialog(id);
-        }
-    });
-    transition.finished.finally(() => {
-        document.documentElement.classList.remove('is-action-dialog-transition');
-        document.querySelector('.puzzle-dialog:open')?.classList.add('is-backdrop-visible');
-    });
-}
-
-function closePuzzleActionMenu(afterClose) {
-    const openMenu = document.querySelector('.puzzle-action-menu.is-open');
-    openActionMenuId = null;
-
-    if (!openMenu) {
-        render();
-        afterClose?.();
-        return;
-    }
-
-    openMenu.classList.remove('is-open');
-    openMenu.classList.add('is-closing');
-
-    let finished = false;
-    let fallbackTimer = null;
-    const onTransitionEnd = (event) => {
-        if (event.target === openMenu && event.propertyName === 'opacity') {
-            finish();
-        }
-    };
-    const finish = () => {
-        if (finished) {
-            return;
-        }
-        finished = true;
-        clearTimeout(fallbackTimer);
-        openMenu.removeEventListener('transitionend', onTransitionEnd);
-        render();
-        afterClose?.();
-    };
-
-    if (prefersReducedMotion()) {
-        finish();
-        return;
-    }
-
-    openMenu.addEventListener('transitionend', onTransitionEnd);
-    fallbackTimer = setTimeout(finish, ACTION_MENU_EXIT_TRANSITION_MS + 60);
+function closePuzzleActionMenu() {
+    document.querySelector('.puzzle-action-menu:popover-open')?.hidePopover();
 }
 
 async function resetPuzzle(id) {
@@ -665,7 +563,7 @@ async function resetPuzzle(id) {
     if (!(await saveData())) return;
     const card = Array.from(document.querySelectorAll('.game-item')).find((item) => item.dataset.id === id);
     if (card) {
-        card.classList.remove('played');
+        updatePuzzleOpened(card, false);
         updateProgress();
         return;
     }
@@ -716,11 +614,7 @@ function openPuzzleRemoveDialog(id) {
 }
 
 function showPuzzleDialog(dialog) {
-    dialog.classList.remove('is-backdrop-visible');
     dialog.showModal();
-    if (!document.documentElement.classList.contains('is-action-dialog-transition')) {
-        requestAnimationFrame(() => dialog.classList.add('is-backdrop-visible'));
-    }
 }
 
 function closePuzzleDialog(dialogId) {
@@ -793,7 +687,7 @@ async function savePuzzleMute() {
     clearExpiredGameMutes();
     if (!(await saveData())) return;
     closePuzzleDialog('mute-puzzle-dialog');
-    renderWithPuzzleTransition();
+    renderWithPuzzleTransition(game.id);
     scheduleMutedGamesRefresh();
 }
 
@@ -804,11 +698,9 @@ async function resumeGame(event, id) {
         return;
     }
     game.mutedUntil = null;
-    if (openActionMenuId) {
-        closePuzzleActionMenu();
-    }
+    closePuzzleActionMenu();
     if (!(await saveData())) return;
-    renderWithPuzzleTransition();
+    renderWithPuzzleTransition(game.id);
     scheduleMutedGamesRefresh();
 }
 
@@ -823,13 +715,13 @@ async function addNewGame() {
     const name = nameInput.value.trim();
     const url = urlInput.value.trim();
 
-    if (!name || !url) {
-        return;
-    }
+    nameInput.setCustomValidity(name ? '' : 'Enter a puzzle name.');
+    if (!nameInput.reportValidity() || !urlInput.reportValidity()) return;
 
     const safeUrl = getSafeHttpUrl(url);
     if (!safeUrl) {
-        alert('Please enter a valid http or https URL');
+        urlInput.setCustomValidity('Enter a link starting with https:// or http://.');
+        urlInput.reportValidity();
         return;
     }
 
@@ -844,6 +736,7 @@ async function addNewGame() {
     urlInput.value = '';
     closeAddMenu();
     renderWithPuzzleTransition();
+    document.getElementById('dashboard-status').textContent = `${name} added to your list.`;
 }
 
 function exportCustomGames() {
@@ -976,14 +869,12 @@ async function permanentlyRemoveGame(event, id) {
 }
 
 async function handleCardClick(event, id, url) {
-    // The whole card is a play target, but its controls must never fall
-    // through to it. This extra guard is important on touch devices, where a
-    // tap can be delivered after a pointer or drag event has already run.
+    // A tap after dragging must not open the puzzle.
     if (isDragging) {
         event.preventDefault();
         return;
     }
-    if (event.target.closest('button, input, select, textarea, label')) {
+    if (event.target.closest('button, input, select, textarea, label, .drag-handle')) {
         return;
     }
 
@@ -991,14 +882,12 @@ async function handleCardClick(event, id, url) {
     if (!event.target.closest('a')) {
         window.open(url, '_blank', 'noopener,noreferrer');
     }
-    if (openActionMenuId) {
-        closePuzzleActionMenu();
-    }
+    closePuzzleActionMenu();
 
     if (!state.playedIds.includes(id)) {
         state.playedIds.push(id);
         if (!(await saveData())) return;
-        card.classList.add('played');
+        updatePuzzleOpened(card, true);
         updateProgress();
     }
 }
@@ -1017,20 +906,47 @@ async function reorderGames(idList) {
         .filter(Boolean);
 
     if (reordered.length !== activeGames.length) {
-        return;
+        return false;
     }
 
     let nextActiveGame = 0;
     state.games = state.games.map((game) => isGameMuted(game) ? game : reordered[nextActiveGame++]);
-    if (!(await saveData())) return;
+    if (!(await saveData())) return false;
     updateProgress();
+    return true;
+}
+
+async function movePuzzle(id, direction) {
+    const ids = state.games.filter((game) => !isGameMuted(game)).map((game) => game.id);
+    const index = ids.indexOf(id);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= ids.length) return;
+    const game = getGameById(id);
+    [ids[index], ids[next]] = [ids[next], ids[index]];
+    if (!await reorderGames(ids)) return;
+    render();
+    document.getElementById('dashboard-status').textContent = `${game.name} moved ${direction < 0 ? 'up' : 'down'}.`;
+    focusPuzzleActions(id);
+}
+
+function focusPuzzleActions(id) {
+    document.getElementById(`actions-${getPuzzleViewTransitionName(id)}`)?.previousElementSibling?.focus();
+}
+
+function updatePuzzleOpened(card, opened) {
+    card.classList.toggle('played', opened);
+    const label = card.querySelector('.played-label');
+    label.hidden = !opened;
+    const link = card.querySelector('.game-title');
+    if (opened) link.setAttribute('aria-describedby', label.id);
+    else link.removeAttribute('aria-describedby');
 }
 
 function updateProgress() {
     const activeGames = state.games.filter((game) => !isGameMuted(game));
     const count = state.playedIds.filter((id) => activeGames.some((game) => game.id === id)).length;
     const total = activeGames.length;
-    document.getElementById('progress-text').innerText = `${count}/${total}`;
+    document.getElementById('progress-text').innerText = `${count} of ${total} opened today`;
 }
 
 function getFaviconUrl(gameUrl) {
@@ -1044,8 +960,10 @@ function getFaviconUrl(gameUrl) {
 
 function getPuzzleActionMenuItems(game, isPlayed) {
     const muted = isGameMuted(game);
+    const active = state.games.filter((saved) => !isGameMuted(saved));
+    const position = active.findIndex((saved) => saved.id === game.id);
     const actionButton = (action, label, icon, extraClass = '') => `
-        <button type="button" role="menuitem" class="${extraClass}" data-action="${action}">
+        <button type="button" class="${extraClass}" data-action="${action}">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
             <span>${label}</span>
         </button>
@@ -1053,6 +971,8 @@ function getPuzzleActionMenuItems(game, isPlayed) {
 
     return [
         isPlayed && !muted ? actionButton('reset', 'Reset', '<path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path>') : '',
+        !muted && position > 0 ? actionButton('up', 'Move up', '<path d="m6 14 6-6 6 6"></path>') : '',
+        !muted && position >= 0 && position < active.length - 1 ? actionButton('down', 'Move down', '<path d="m6 10 6 6 6-6"></path>') : '',
         actionButton('edit', 'Edit', '<path d="m4 16 8.6-8.6a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path><path d="m11 9 4 4"></path>'),
         actionButton('copy', 'Copy link', '<rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4H4v12h4"></path>'),
         actionButton('share', 'Share link', '<path d="M12 16V3m-4 4 4-4 4 4"></path><path d="M8 11H4v10h16V11h-4"></path>'),
@@ -1065,17 +985,31 @@ function getPuzzleActionMenuItems(game, isPlayed) {
 }
 
 function bindPuzzleActionMenu(container, game) {
-    const moreActionsButton = container.querySelector('.more-actions-btn');
-    moreActionsButton.setAttribute('aria-label', `More actions for ${game.name}`);
-    const actionMenuItems = container.querySelectorAll('.puzzle-action-menu button');
-    // Keep Sortable's card-wide touch handling away from the action menu.
-    ['pointerdown', 'touchstart'].forEach((eventName) => {
-        moreActionsButton.addEventListener(eventName, (event) => event.stopPropagation());
-        actionMenuItems.forEach((item) => item.addEventListener(eventName, (event) => event.stopPropagation()));
+    const trigger = container.querySelector('.more-actions-btn');
+    const menu = container.querySelector('.puzzle-action-menu');
+    menu.id = `actions-${getPuzzleViewTransitionName(game.id)}`;
+    trigger.setAttribute('aria-label', `More actions for ${game.name}`);
+    trigger.setAttribute('popovertarget', menu.id);
+    menu.addEventListener('beforetoggle', (event) => {
+        if (event.newState === 'open') menu.innerHTML = getPuzzleActionMenuItems(game, state.playedIds.includes(game.id));
     });
-    moreActionsButton.onclick = (event) => togglePuzzleActionMenu(event, game.id);
-    actionMenuItems.forEach((item) => {
-        item.onclick = (event) => openPuzzleAction(event, game.id, item.dataset.action);
+    menu.addEventListener('toggle', (event) => {
+        trigger.setAttribute('aria-expanded', String(event.newState === 'open'));
+        if (event.newState !== 'open') return;
+        const rect = trigger.getBoundingClientRect();
+        menu.style.left = `${Math.max(8, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8))}px`;
+        menu.style.top = `${Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - menu.offsetHeight - 8))}px`;
+    });
+    trigger.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowDown') return;
+        event.preventDefault();
+        if (!menu.matches(':popover-open')) trigger.click();
+        menu.querySelector('button').focus();
+    });
+    menu.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const button = event.target.closest('button[data-action]');
+        if (button) openPuzzleAction(event, game.id, button.dataset.action);
     });
 }
 
@@ -1087,13 +1021,17 @@ function getPuzzleViewTransitionName(id) {
     return `puzzle-${(hash >>> 0).toString(36)}`;
 }
 
-function renderWithPuzzleTransition() {
-    if (!canUseViewTransitions()) {
+function renderWithPuzzleTransition(focusId) {
+    const update = () => {
         render();
+        if (focusId) focusPuzzleActions(focusId);
+    };
+    if (!canUseViewTransitions()) {
+        update();
         return;
     }
 
-    document.startViewTransition(() => render());
+    document.startViewTransition(update);
 }
 
 function render() {
@@ -1118,10 +1056,9 @@ function render() {
     state.games.filter((game) => !isGameMuted(game)).forEach((game) => {
         const isPlayed = state.playedIds.includes(game.id);
         const favicon = getFaviconUrl(game.url);
-        const isActionMenuOpen = openActionMenuId === game.id;
 
         const card = document.createElement('div');
-        card.className = `game-card game-item ${isPlayed ? 'played' : ''} ${isActionMenuOpen ? 'has-open-action-menu' : ''}`;
+        card.className = `game-card game-item ${isPlayed ? 'played' : ''}`;
         card.dataset.id = game.id;
         card.style.viewTransitionName = getPuzzleViewTransitionName(game.id);
         card.onclick = (event) => handleCardClick(event, game.id, game.url);
@@ -1129,7 +1066,7 @@ function render() {
         card.innerHTML = `
             <div class="game-main">
                 <div class="game-left">
-                    <div class="drag-handle">
+                    <div class="drag-handle" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="19" r="1"></circle>
                             <circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="19" r="1"></circle>
@@ -1142,13 +1079,16 @@ function render() {
                                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
                             </svg>
                         </div>
-                        <a class="game-title" target="_blank" rel="noopener noreferrer"></a>
+                        <div class="game-link-group">
+                            <a class="game-title" target="_blank" rel="noopener noreferrer"></a>
+                            <span class="played-label" id="${getPuzzleViewTransitionName(game.id)}-opened" hidden>Opened today</span>
+                        </div>
                     </div>
                 </div>
                 <div class="game-actions">
                     <div class="action-menu-wrap">
-                        <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${isActionMenuOpen}">•••</button>
-                        <div class="puzzle-action-menu ${isActionMenuOpen ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
+                        <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-expanded="false">•••</button>
+                        <div class="puzzle-action-menu" popover role="group" aria-label="Puzzle actions">
                             ${getPuzzleActionMenuItems(game, isPlayed)}
                         </div>
                     </div>
@@ -1159,6 +1099,7 @@ function render() {
         const puzzleLink = card.querySelector('.game-title');
         puzzleLink.textContent = game.name;
         puzzleLink.href = game.url;
+        updatePuzzleOpened(card, isPlayed);
         bindPuzzleActionMenu(card, game);
         container.appendChild(card);
     });
@@ -1181,7 +1122,7 @@ function renderPausedGames() {
 
     pausedGames.forEach((game) => {
         const item = document.createElement('li');
-        item.className = `recently-removed-item paused-game-item ${openActionMenuId === game.id ? 'has-open-action-menu' : ''}`;
+        item.className = 'recently-removed-item paused-game-item';
         item.style.viewTransitionName = getPuzzleViewTransitionName(game.id);
 
         const info = document.createElement('div');
@@ -1198,8 +1139,8 @@ function renderPausedGames() {
         actions.className = 'recently-removed-actions';
         actions.innerHTML = `
             <div class="action-menu-wrap">
-                <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-haspopup="menu" aria-expanded="${openActionMenuId === game.id}">•••</button>
-                <div class="puzzle-action-menu ${openActionMenuId === game.id ? 'is-open' : ''}" role="menu" aria-label="Puzzle actions">
+                <button type="button" class="more-actions-btn" aria-label="More actions for puzzle" aria-expanded="false">•••</button>
+                <div class="puzzle-action-menu" popover role="group" aria-label="Puzzle actions">
                     ${getPuzzleActionMenuItems(game, false)}
                 </div>
             </div>
@@ -1298,7 +1239,6 @@ Object.assign(window, {
     selectPauseDays,
     sendPuzzleToBin,
     openPuzzleAction,
-    togglePuzzleActionMenu
 });
 
 window.addEventListener('DOMContentLoaded', init);

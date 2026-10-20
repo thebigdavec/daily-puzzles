@@ -184,7 +184,10 @@ test('native puzzle links retain navigation and record play; drag clicks do neit
     app.context.window.open = () => { opened++; };
     const event = {
         target: { closest: (selector) => selector === 'a' ? {} : null },
-        currentTarget: { classList: { add: () => { marked = true; } } },
+        currentTarget: {
+            classList: { toggle: (name, value) => { marked = value; } },
+            querySelector: () => ({ setAttribute() {}, removeAttribute() {} })
+        },
         preventDefault: () => { prevented = true; }
     };
     await app.context.handleCardClick(event, 'wordle', 'https://www.nytimes.com/games/wordle');
@@ -195,6 +198,12 @@ test('native puzzle links retain navigation and record play; drag clicks do neit
     app.context.window.setDragging(true);
     await app.context.handleCardClick(event, 'wordle', 'https://www.nytimes.com/games/wordle');
     assert.equal(prevented, true);
+    assert.equal(opened, 0);
+    app.context.window.setDragging(false);
+    app.state().playedIds = [];
+    event.target.closest = selector => selector.includes('.drag-handle') ? {} : null;
+    await app.context.handleCardClick(event, 'wordle', 'https://www.nytimes.com/games/wordle');
+    assert.equal(app.state().playedIds.length, 0);
     assert.equal(opened, 0);
 });
 
@@ -260,20 +269,19 @@ test('active and muted menus share actions while keeping reset, mute and unmute 
     assert.ok(!actions({ ...wordle, mutedUntil: Date.now() + 86400000 }, false).includes('suggest'));
 });
 
-test('shared menu bindings stop touch propagation and send actions for the right puzzle', () => {
+test('native popover bindings keep their invoker and dispatch actions without rendering', () => {
     const app = dashboard();
-    const trigger = { listeners: {}, addEventListener(name, run) { this.listeners[name] = run; }, setAttribute() {} };
-    const button = { ...trigger, listeners: {}, dataset: { action: 'resume' } };
-    const container = { querySelector: () => trigger, querySelectorAll: () => [button] };
+    const trigger = { attributes: {}, listeners: {}, addEventListener(name, run) { this.listeners[name] = run; }, setAttribute(name, value) { this.attributes[name] = value; } };
+    const menu = { listeners: {}, addEventListener(name, run) { this.listeners[name] = run; } };
+    const container = { querySelector: (selector) => selector === '.more-actions-btn' ? trigger : menu };
     const calls = [];
     app.context.openPuzzleAction = (event, id, action) => calls.push({ id, action });
+    app.context.render = () => { throw new Error('Opening or closing a popover must not rebuild the dashboard'); };
     app.context.bindPuzzleActionMenu(container, { id: 'muted', name: 'Muted puzzle' });
-    let stopped = 0;
-    const event = { stopPropagation() { stopped++; } };
-    trigger.listeners.pointerdown(event);
-    button.listeners.touchstart(event);
-    button.onclick(event);
-    assert.equal(stopped, 2);
+    assert.equal(trigger.attributes.popovertarget, menu.id);
+    menu.listeners.toggle({ newState: 'closed' });
+    assert.equal(trigger.attributes['aria-expanded'], 'false');
+    menu.listeners.click({ stopPropagation() {}, target: { closest: () => ({ dataset: { action: 'resume' } }) } });
     assert.deepEqual(calls, [{ id: 'muted', action: 'resume' }]);
 });
 
@@ -283,4 +291,50 @@ test('the shared action dispatcher routes Unmute to resume rather than a dialog'
     app.context.resumeGame = (event, id) => { resumed = id; };
     app.context.window.openPuzzleAction({ stopPropagation() {} }, 'muted', 'resume');
     assert.equal(resumed, 'muted');
+});
+
+test('keyboard moves persist only active order, keep muted slots and refuse moves past the ends', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    app.state().games.push({ id: 'muted', name: 'Muted', url: 'https://example.com/muted', mutedUntil: Date.now() + 86400000 },
+        { id: 'other', name: 'Other', url: 'https://example.com/other' });
+    await app.context.saveData();
+    await app.context.movePuzzle('wordle', 1);
+    assert.deepEqual(JSON.parse(app.storage.value).games.map(game => game.id), ['other', 'muted', 'wordle']);
+    const writes = app.storage.writes;
+    await app.context.movePuzzle('wordle', 1);
+    await app.context.movePuzzle('muted', -1);
+    assert.equal(app.storage.writes, writes);
+    app.storage.failWrite = true;
+    await app.context.movePuzzle('wordle', -1);
+    assert.deepEqual(JSON.parse(app.storage.value).games.map(game => game.id), ['other', 'muted', 'wordle']);
+});
+
+test('blank names and unsafe links get field validation without writing a puzzle', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    const name = app.context.document.getElementById('new-game-name');
+    const url = app.context.document.getElementById('new-game-url');
+    name.value = '   ';
+    url.value = 'https://example.com';
+    await app.context.addNewGame();
+    assert.equal(name.validationMessage, 'Enter a puzzle name.');
+    name.value = 'Unsafe';
+    url.value = 'javascript:alert(1)';
+    await app.context.addNewGame();
+    assert.match(url.validationMessage, /https/);
+    assert.equal(app.storage.writes, 0);
+});
+
+test('opened state is visible and connected to its link for assistive technology', () => {
+    const app = dashboard();
+    const label = { id: 'opened-label', hidden: true };
+    const link = { setAttribute(name, value) { this[name] = value; }, removeAttribute(name) { delete this[name]; } };
+    const card = { classList: { toggle() {} }, querySelector: selector => selector === '.played-label' ? label : link };
+    app.context.updatePuzzleOpened(card, true);
+    assert.equal(label.hidden, false);
+    assert.equal(link['aria-describedby'], label.id);
+    app.context.updatePuzzleOpened(card, false);
+    assert.equal(label.hidden, true);
+    assert.equal(link['aria-describedby'], undefined);
 });

@@ -47,7 +47,8 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
     const timers = [];
     const getField = (id) => fields[id] ||= {
         value: '', textContent: '', hidden: false,
-        reportValidity: () => true,
+        setCustomValidity(message) { this.validationMessage = message; },
+        reportValidity() { return !this.validationMessage; },
         close() {},
         classList: { contains: () => false, add() {}, remove() {} },
         addEventListener() {}, setAttribute() {}
@@ -59,6 +60,7 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
         document: {
             getElementById: getField,
             querySelectorAll: () => [],
+            querySelector: () => null,
             addEventListener(name, run) { events[name] = run; }
         },
         window: {

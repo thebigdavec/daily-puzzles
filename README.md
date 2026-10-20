@@ -11,11 +11,11 @@ It is intentionally a static site: there is no build step, account, server, or d
 - Includes daily releases and unlimited games that suit a once-a-day routine.
 - Includes **Suggest for library** in the action menu for puzzles outside the library, opening the suggestion form with its name and link filled in.
 - Lets visitors suggest puzzles by preparing an email to `dave@davecollison.dev`. Visitors send the draft from their email app; suggestions do not publish automatically.
-- Lets you add your own HTTP or HTTPS puzzle links.
+- Lets you add your own HTTP or HTTPS puzzle links using a name and link. Enter submits the Add form, missing or invalid fields receive browser validation, and a visible message confirms a successful addition.
 - Lets you rename a puzzle, change its link, or mute it temporarily; muted puzzles remain available through the three-dot action menu.
-- Opens a puzzle in a new tab and marks it as played when you select its card or activate its keyboard-accessible title link.
-- Shows a simple played/total progress count.
-- Supports drag-and-drop reordering, including on touch devices.
+- Opens a puzzle in a new tab and marks it **Opened today** when you select its card or activate its keyboard-accessible title link. Opening a link records a visit, not completion of the game.
+- Shows how many puzzles you have opened today, with text labels and announced progress updates.
+- Supports drag-and-drop reordering from the handle, including on touch devices. The rest of each card scrolls normally. **Move up** and **Move down** in the action popover also work with a keyboard.
 - Resets played puzzles manually or automatically at a configurable time.
 - Lets you use either the device time zone or a specific IANA time zone, such as `Europe/London`.
 - Lets you restore the original curated puzzle list from **Settings** whenever you want a clean start.
@@ -34,7 +34,11 @@ The **Add** form still needs only a puzzle name and link. It appends the puzzle 
 
 Library category choices also come from the catalogue entries, in their first-seen order. The shared `hasPuzzle()` check recognises an existing puzzle by its ID or equivalent link when displaying the library, adding from it or restoring from the Bin. Muted puzzles count as existing entries.
 
-Active and muted puzzle menus share their markup and event bindings. Their available actions depend on whether the puzzle is played, muted or already in the library. Dashboard updates, including startup, use `refreshDashboard()`.
+Active and muted puzzle actions share native HTML popovers and event bindings. Tab reaches the actions, Arrow Down enters from the three-dot button, and Escape closes the popover and returns focus without rebuilding the list. Available actions depend on whether the puzzle is opened, muted or already in the library. Dashboard updates, including startup, use `refreshDashboard()`.
+
+The Library opens directly onto search, category filters and puzzles. Its Close button and add confirmation stay visible while the results scroll. Adding a puzzle keeps its card in place; reopening the Library groups existing entries at the end. Phone layouts use larger action targets and stack settings controls.
+
+Add, Library, Edit, Mute and Remove use native `<dialog>` elements. Add uses a real `<form>` with required fields, puzzle actions use `popover` / `popovertarget`, and inputs and selects remain native controls. SortableJS is retained only for dragging the reorder handle; keyboard reordering uses ordinary buttons.
 
 ## Run locally
 
@@ -68,7 +72,7 @@ No puzzle list or progress is sent to an application server. The page loads Sort
 
 ## Browser support
 
-Use a current Chrome, Edge, Firefox or Safari with ES modules, `Intl.DateTimeFormat` and Web Locks support. Saving requires a secure context: the published HTTPS site, or a local server on `localhost` / `127.0.0.1`. The reset settings screen also uses `Intl.supportedValuesOf()` when available to offer the full time-zone list; browsers without it receive a useful set of common zones.
+Use a current Chrome, Edge, Firefox or Safari with ES modules, native `<dialog>` and Popover API support, `Intl.DateTimeFormat` and Web Locks support. Saving requires a secure context: the published HTTPS site, or a local server on `localhost` / `127.0.0.1`. The reset settings screen also uses `Intl.supportedValuesOf()` when available to offer the full time-zone list; browsers without it receive a useful set of common zones.
 
 ## Tests
 
@@ -78,7 +82,7 @@ Run catalogue, search, duplicate-link, email-draft, reset and automatic settings
 node --test test/dashboard.test.js test/library.test.js test/settings.test.js
 ```
 
-The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, shared active/muted menus, duplicate matching, generated category choices, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
+The checks cover storage failures, stale and simultaneous tab saves, fast settings changes, empty-list removal and restoration, long mute timers, puzzle-link behaviour, shared active/muted popovers, keyboard reorder boundaries and persistence, field validation, accessible opened labels, duplicate matching, generated category choices, catalogue filters, suggestions, reset boundaries, distant time zones and both daylight-saving transitions. The focused reset-schedule checks can also run in a browser. Serve the project locally, then open:
 
 ```text
 http://localhost:8000/test/reset-schedule.html

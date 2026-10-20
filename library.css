@@ -1,4 +1,6 @@
 .library-dialog {
+    overflow: hidden;
+    max-height: calc(100dvh - 2rem);
     width: min(76rem, calc(100% - 2rem));
     max-width: 76rem;
 }
@@ -113,4 +115,40 @@
     .library-filters {
         grid-template-columns: 1fr;
     }
+}
+
+.library-dialog .dialog-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    gap: 0;
+}
+.library-dialog .dialog-header {
+    flex: 0 0 auto;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.library-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+}
+.library-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding-inline: 0.35rem;
+}
+#library-status:empty { display: none; }
+@media (max-width: 560px) {
+    .library-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.5rem; }
+    .library-filters .input-field { min-width: 0; padding-inline: 0.5rem; }
+    .library-card { padding: 0.85rem; }
+}
+
+@media (max-width: 360px) {
+    .library-filters { grid-template-columns: minmax(0, 1fr); }
 }

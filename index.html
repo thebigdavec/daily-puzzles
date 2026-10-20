@@ -8,19 +8,18 @@
     <meta name="description"
         content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css?v=24">
-    <link rel="stylesheet" href="library.css?v=1">
+    <link rel="stylesheet" href="main.css?v=25">
+    <link rel="stylesheet" href="library.css?v=2">
 </head>
 
 <body class="app">
-    <span id="progress-text" class="progress-badge">
-        0/0
-    </span>
-
     <div class="app-shell">
         <header class="app-header">
             <h1 class="app-title">Daily Puzzles</h1>
             <p id="current-date" class="current-date"></p>
+            <span id="progress-text" class="progress-badge" role="status" aria-live="polite">
+                0 of 0 opened today
+            </span>
 
             <div class="actions">
                 <button type="button" id="open-library" class="btn btn-pill btn-secondary">
@@ -57,12 +56,13 @@
             </div>
         </header>
         <p id="storage-status" class="library-copy" role="alert" hidden></p>
+        <p id="dashboard-status" class="dashboard-status" role="status" aria-live="polite" aria-atomic="true"></p>
 
         <!-- Manage Puzzles Form -->
-        <div id="add-menu" class="add-menu" aria-hidden="true">
-            <div class="add-menu-panel game-card">
+        <dialog id="add-menu" class="puzzle-dialog" aria-labelledby="add-puzzle-title">
+            <form id="add-puzzle-form" class="dialog-panel">
                 <div class="menu-header">
-                    <h3 class="menu-title">Add New Puzzle</h3>
+                    <h2 id="add-puzzle-title" class="menu-title">Add New Puzzle</h2>
                     <button class="close-control" type="button" onclick="closeAddMenu()" aria-label="Close add puzzle panel">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -76,21 +76,21 @@
                     <div class="form-grid">
                         <label class="form-field" for="new-game-name">
                             <span class="field-label">Puzzle name</span>
-                            <input type="text" id="new-game-name" placeholder="e.g. Sudoku" class="input-field">
+                            <input type="text" id="new-game-name" placeholder="e.g. Sudoku" class="input-field" required autofocus>
                         </label>
                         <label class="form-field" for="new-game-url">
                             <span class="field-label">Puzzle link</span>
-                            <input type="url" id="new-game-url" placeholder="https://..." class="input-field">
+                            <input type="url" id="new-game-url" placeholder="https://..." class="input-field" required>
                         </label>
                     </div>
                     <div class="form-actions">
-                        <button onclick="addNewGame()" class="btn btn-primary btn-block">
+                        <button type="submit" class="btn btn-primary btn-block">
                             Add to List
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
+            </form>
+        </dialog>
 
         <div id="settings-menu" class="add-menu" aria-hidden="true">
             <div class="add-menu-panel game-card">
@@ -119,7 +119,8 @@
                             <div>
                                 <h5>Time Zone</h5>
                                 <label class="field-label" for="reset-time-zone">Choose time zone</label>
-                                <select id="reset-time-zone" class="input-field" onchange="saveSettings()"></select>
+                                <select id="reset-time-zone" class="input-field" onchange="saveSettings()" aria-describedby="reset-time-zone-name"></select>
+                                <output id="reset-time-zone-name" class="settings-defaults-copy" for="reset-time-zone"></output>
                             </div>
                             <p id="settings-save-status" class="settings-defaults-copy" role="status" aria-live="polite"
                                 aria-atomic="true">Changes save automatically on this device.</p>
@@ -273,9 +274,7 @@
                 <div class="dialog-header">
                     <div>
                         <h2 id="library-title">Puzzle library</h2>
-                        <p>
-                            Find your next daily favourite. Free to play in your browser.
-                        </p>
+                        <p id="library-status" role="status" aria-live="polite" aria-atomic="true"></p>
                     </div>
                     <button
                         type="button"
@@ -290,111 +289,104 @@
                         </svg>
                     </button>
                 </div>
-                <p class="library-copy">
-                    Choose a few favourites for your daily list. Some games
-                    offer optional accounts or paid extras; the daily puzzle
-                    is free.
-                </p>
-                <div class="library-filters">
-                    <label class="form-field" for="library-search">
-                        <span class="field-label">Search puzzles</span>
-                        <input
-                            id="library-search"
-                            type="search"
-                            class="input-field"
-                            placeholder="Name or description…"
-                        />
-                    </label>
-                    <label class="form-field" for="library-category">
-                        <span class="field-label">Category</span>
-                        <select id="library-category" class="input-field">
-                            <option value="">All categories</option>
-                        </select>
-                    </label>
-                </div>
-                <p
-                    id="library-count"
-                    class="library-copy"
-                    role="status"
-                ></p>
-                <div id="library-games" class="library-games"></div>
-                <p
-                    id="library-status"
-                    class="library-copy"
-                    role="status"
-                ></p>
-                <details class="library-suggest">
-                    <summary>Suggest a daily puzzle</summary>
-                    <p class="library-copy">
-                        Know a good one? Send it to Dave for review.
-                        Suggestions are checked before they join the
-                        library.
-                    </p>
-                    <form id="suggest-puzzle-form">
-                        <label class="form-field" for="suggest-name"
-                            ><span class="field-label">Puzzle name</span
-                            ><input
-                                id="suggest-name"
+                <div class="library-body">
+                    <div class="library-filters">
+                        <label class="form-field" for="library-search">
+                            <span class="field-label">Search puzzles</span>
+                            <input
+                                id="library-search"
+                                type="search"
                                 class="input-field"
-                                required
-                                maxlength="100"
-                        /></label>
-                        <label class="form-field" for="suggest-url"
-                            ><span class="field-label">Puzzle link</span
-                            ><input
-                                id="suggest-url"
-                                class="input-field"
-                                type="url"
-                                placeholder="https://…"
-                                required
-                                maxlength="500"
-                        /></label>
-                        <label class="form-field" for="suggest-notes"
-                            ><span class="field-label"
-                                >What do you like about it? (optional)</span
-                            ><textarea
-                                id="suggest-notes"
-                                class="input-field"
-                                rows="3"
-                                maxlength="1000"
-                            ></textarea>
-                        </label>
-                        <label class="library-check"
-                            ><input
-                                id="suggest-confirm"
-                                type="checkbox"
-                                required
+                                placeholder="Name or description…"
                             />
-                            It is free to play in a browser and suits a
-                            daily routine.</label
-                        >
-                        <button type="submit" class="btn btn-primary">
-                            Prepare suggestion email
-                        </button>
-                    </form>
-                    <p class="library-copy">
-                        Opens your email app with a draft to
-                        dave@davecollison.dev. You send it from there.
-                    </p>
+                        </label>
+                        <label class="form-field" for="library-category">
+                            <span class="field-label">Category</span>
+                            <select id="library-category" class="input-field">
+                                <option value="">All categories</option>
+                            </select>
+                        </label>
+                    </div>
                     <p
-                        id="suggest-status"
+                        id="library-count"
                         class="library-copy"
                         role="status"
                     ></p>
-                    <div id="suggest-fallback" hidden>
+                    <div id="library-games" class="library-games"></div>
+
+                    <details class="library-suggest">
+                        <summary>Suggest a daily puzzle</summary>
                         <p class="library-copy">
-                            If your email app did not open, copy these
-                            details into an email to dave@davecollison.dev.
+                            Know a good one? Send it to Dave for review.
+                            Suggestions are checked before they join the
+                            library.
                         </p>
-                        <textarea
-                            id="suggest-email-text"
-                            class="input-field"
-                            rows="7"
-                            readonly
-                            aria-label="Suggestion email to copy"
-                        ></textarea>
-                    </div>
-                </details>
+                        <form id="suggest-puzzle-form">
+                            <label class="form-field" for="suggest-name"
+                                ><span class="field-label">Puzzle name</span
+                                ><input
+                                    id="suggest-name"
+                                    class="input-field"
+                                    required
+                                    maxlength="100"
+                            /></label>
+                            <label class="form-field" for="suggest-url"
+                                ><span class="field-label">Puzzle link</span
+                                ><input
+                                    id="suggest-url"
+                                    class="input-field"
+                                    type="url"
+                                    placeholder="https://…"
+                                    required
+                                    maxlength="500"
+                            /></label>
+                            <label class="form-field" for="suggest-notes"
+                                ><span class="field-label"
+                                    >What do you like about it? (optional)</span
+                                ><textarea
+                                    id="suggest-notes"
+                                    class="input-field"
+                                    rows="3"
+                                    maxlength="1000"
+                                ></textarea>
+                            </label>
+                            <label class="library-check"
+                                ><input
+                                    id="suggest-confirm"
+                                    type="checkbox"
+                                    required
+                                />
+                                It is free to play in a browser and suits a
+                                daily routine.</label
+                            >
+                            <button type="submit" class="btn btn-primary">
+                                Prepare suggestion email
+                            </button>
+                        </form>
+                        <p class="library-copy">
+                            Opens your email app with a draft to
+                            dave@davecollison.dev. You send it from there.
+                        </p>
+                        <p
+                            id="suggest-status"
+                            class="library-copy"
+                            role="status"
+                        ></p>
+                        <div id="suggest-fallback" hidden>
+                            <p class="library-copy">
+                                If your email app did not open, copy these
+                                details into an email to dave@davecollison.dev.
+                            </p>
+                            <textarea
+                                id="suggest-email-text"
+                                class="input-field"
+                                rows="7"
+                                readonly
+                                aria-label="Suggestion email to copy"
+                            ></textarea>
+                        </div>
+                    </details>
+                </div>
             </div>
         </dialog>
 
@@ -421,12 +413,12 @@
         <input id="import-games-file" type="file" accept="application/json,.json" hidden>
 
         <footer class="app-footer">
-            <p id="reset-summary">Click any card to play • Drag anywhere to reorder</p>
+            <p id="reset-summary">Click any card to play • Drag the handle to reorder</p>
         </footer>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script type="module" src="script.js?v=31"></script>
+    <script type="module" src="script.js?v=32"></script>
 </body>
 
 </html>

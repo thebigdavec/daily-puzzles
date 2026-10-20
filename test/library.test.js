@@ -243,3 +243,51 @@ test('library matches block duplicate suggestions even under a different name', 
     assert.equal(isInLibrary('invalid'), false);
     assert.equal(isInLibrary('https://example.com:9443/daily'), false);
 });
+
+test('adding keeps a library card in place, confirms success and allows retry after failure', async (t) => {
+    const previousDocument = globalThis.document;
+    const fields = {};
+    function node(tag = 'div') {
+        return {
+            tag, children: [], listeners: {}, attributes: {}, value: '', textContent: '',
+            isConnected: true,
+            append(...children) { this.children.push(...children); },
+            replaceChildren() { this.children = []; },
+            setAttribute(name, value) { this.attributes[name] = value; },
+            addEventListener(name, run) { this.listeners[name] = run; },
+            focus() { document.activeElement = this; },
+            showModal() { this.open = true; },
+            dataset: {}
+        };
+    }
+    globalThis.document = {
+        body: node('body'),
+        createElement: node,
+        getElementById(id) { return fields[id] ||= node(); }
+    };
+    t.after(() => { globalThis.document = previousDocument; });
+    const games = [];
+    let succeeds = true;
+    initLibrary({ getGames: () => games, addGame: async (game) => {
+        if (!succeeds) return false;
+        games.push(game);
+        return true;
+    } });
+    fields['open-library'].listeners.click();
+    const list = fields['library-games'];
+    const card = list.children[0];
+    const button = card.children.at(-1);
+    document.activeElement = button;
+    await button.listeners.click();
+    assert.equal(list.children[0], card);
+    assert.equal(button.disabled, true);
+    assert.equal(button.textContent, '✓ Added');
+    assert.equal(document.activeElement, card.children[1]);
+    assert.equal(fields['library-status'].textContent, `${LIBRARY_GAMES[0].name} added to your list.`);
+    succeeds = false;
+    const retryButton = list.children[1].children.at(-1);
+    await retryButton.listeners.click();
+    assert.equal(retryButton.disabled, false);
+    assert.equal(games.length, 1);
+    assert.match(fields['library-status'].textContent, /Please try again/);
+});
