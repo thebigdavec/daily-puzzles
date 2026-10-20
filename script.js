@@ -14,12 +14,12 @@ const DEFAULT_GAMES = [
     { id: 'strands', name: 'Strands', url: 'https://www.nytimes.com/games/strands' },
     { id: 'categories', name: 'Categories', url: 'https://categories.clevergoat.com/' },
     { id: 'wordlinx', name: 'WordLinx', url: 'https://sacsgames.com/wordlinx/' },
+    { id: 'chain', name: 'Chain', url: 'https://playthechaingame.com/' },
+    { id: 'the-or-no-the', name: 'The or No The', url: 'https://www.theornothe.com/' }
     { id: 'onewordsearch', name: 'OneWordSearch', url: 'https://puzzlist.com/onewordsearch/' },
     { id: 'wordly', name: 'Wordly', url: 'https://wordly.org/uk' },
     { id: 'tightrope', name: 'Tightrope', url: 'https://www.britannica.com/quiz/tightrope' },
     { id: 'waffle', name: 'Waffle', url: 'https://wafflegame.net/daily' },
-    { id: 'chain', name: 'Chain', url: 'https://playthechaingame.com/' },
-    { id: 'the-or-no-the', name: 'The or No The', url: 'https://www.theornothe.com/' }
 ];
 
 const STORAGE_KEY = 'puzzle_dashboard_v3';
