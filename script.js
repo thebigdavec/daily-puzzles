@@ -958,6 +958,8 @@ function updateProgress() {
 function getFaviconUrl(gameUrl) {
     try {
         const url = new URL(gameUrl);
+        // Google's lookup returns 404 for this puzzle; use its published icon locally.
+        if (url.hostname.replace(/^www\./, '') === 'theornothe.com') return 'icons/the-or-no-the.png';
         return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
     } catch (error) {
         return '';

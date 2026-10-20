@@ -69,7 +69,7 @@ All application state is stored locally in the browser under the `puzzle_dashboa
 
 Loading saved data does not write it back. Read or write failures show an error and preserve the stored data. Saves use browser Web Locks to serialise writes across tabs and check that the saved copy is still current before replacing it.
 
-No puzzle list or progress is sent to an application server. The page loads SortableJS from cdnjs for drag-and-drop, Manrope from Google Fonts, and puzzle favicons through Google's favicon service. Those resources require network access.
+No puzzle list or progress is sent to an application server. The page loads SortableJS from cdnjs for drag-and-drop, Manrope from Google Fonts, and most puzzle favicons through Google's favicon service. Those resources require network access. The or No The uses its published icon bundled locally in `icons/` because Google's lookup returns 404. Failed icon loads display the generic puzzle icon; browsers may still log failed network requests even when the app handles them.
 
 ## Browser support
 

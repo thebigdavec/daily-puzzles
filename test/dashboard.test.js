@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { DEFAULT_GAMES } from '../library-games.js';
 import { dashboard, makeLocks, makeStorage } from './helpers/dashboard.js';
@@ -422,4 +423,15 @@ test('Reset All clears existing cards after saving so their green can fade witho
         assert.deepEqual(JSON.parse(app.storage.value).playedIds, failWrite ? ['wordle'] : []);
         assert.equal(renders, failWrite ? 1 : 0);
     }
+});
+
+test('The or No The uses its bundled icon instead of the failing Google lookup', () => {
+    const app = dashboard();
+    for (const url of ['https://www.theornothe.com/', 'http://theornothe.com/']) {
+        assert.equal(app.context.getFaviconUrl(url), 'icons/the-or-no-the.png');
+    }
+    assert.match(app.context.getFaviconUrl('https://example.com/puzzle'), /domain=example.com/);
+    assert.equal(app.context.getFaviconUrl('invalid'), '');
+    const icon = readFileSync(new URL('../icons/the-or-no-the.png', import.meta.url));
+    assert.equal(icon.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 });
