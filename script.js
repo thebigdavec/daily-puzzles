@@ -1,4 +1,4 @@
-import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=2';
+import { initLibrary, isInLibrary, openPuzzleSuggestion, puzzleUrlKey } from './library.js?v=3';
 import {
     DEFAULT_RESET_TIME,
     DEVICE_TIME_ZONE,

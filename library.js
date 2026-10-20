@@ -1,4 +1,4 @@
-import { LIBRARY_GAMES } from './library-games.js?v=2';
+import { LIBRARY_GAMES } from './library-games.js?v=3';
 
 export function puzzleUrlKey(value) {
     try {

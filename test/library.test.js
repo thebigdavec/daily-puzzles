@@ -10,6 +10,17 @@ import {
     suggestionEmail
 } from '../library.js';
 import { runResetScheduleTests } from './reset-schedule.test.js';
+import { dashboard, makeStorage } from './helpers/dashboard.js';
+
+test('every default puzzle is available in the library with the same ID and link', () => {
+    const app = dashboard(makeStorage(null));
+    app.context.loadData();
+    for (const game of app.state().games) {
+        assert.ok(LIBRARY_GAMES.some((entry) =>
+            entry.id === game.id && puzzleUrlKey(entry.url) === puzzleUrlKey(game.url)
+        ), `${game.name} must be in the library`);
+    }
+});
 
 test('every catalogue category has a filter, including quizzes', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');

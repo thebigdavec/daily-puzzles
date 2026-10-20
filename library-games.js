@@ -45,6 +45,14 @@ export const LIBRARY_GAMES = [
     source: goatSource
   },
   {
+    id: 'wordlinx',
+    name: 'WordLinx',
+    url: 'https://sacsgames.com/wordlinx/',
+    category: 'Words',
+    description: 'Use a hint and shared-letter clues to solve four linked words.',
+    source: 'https://sacsgames.com/'
+  },
+  {
     id: 'onewordsearch',
     name: 'OneWordSearch',
     url: 'https://puzzlist.com/onewordsearch/',
