@@ -97,3 +97,31 @@ test('saved zones remain selected and survive time changes with full and fallbac
         }
     }
 });
+
+test('opening Settings returns to the panel and respects reduced motion; closing stays put', () => {
+    for (const reducedMotion of [false, true]) {
+        const app = dashboard();
+        const menu = app.context.document.getElementById('settings-menu');
+        let open = false;
+        menu.classList = {
+            contains: () => open,
+            add() { open = true; },
+            remove() { open = false; }
+        };
+        app.context.populateSettings = () => {};
+        app.context.window.matchMedia = () => ({ matches: reducedMotion });
+        let scrolls = 0;
+        app.context.window.scrollTo = ({ top, behavior }) => {
+            assert.equal(open, true);
+            assert.equal(top, 0);
+            assert.equal(behavior, reducedMotion ? 'instant' : 'smooth');
+            scrolls++;
+        };
+        app.context.openSettings();
+        assert.equal(scrolls, 1);
+        app.context.openSettings();
+        assert.equal(open, false);
+        assert.equal(scrolls, 1);
+        assert.equal(app.storage.writes, 0);
+    }
+});

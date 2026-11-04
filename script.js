@@ -36,6 +36,7 @@ let savedState = JSON.stringify(state);
 let lastWrite;
 
 async function init() {
+    initToolbar();
     document.getElementById('add-puzzle-form').addEventListener('submit', (event) => {
         event.preventDefault();
         addNewGame();
@@ -362,10 +363,26 @@ function migrateLastResetDate(savedDate) {
     return savedDate === new Date().toDateString() ? getPuzzleDay(undefined, state) : '';
 }
 
+function initToolbar() {
+    const toolbar = document.getElementById('toolbar');
+    const sentinel = document.getElementById('toolbar-sentinel');
+    const observer = new IntersectionObserver(([entry]) => {
+        toolbar.classList.toggle('is-stuck', !entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
+    observer.observe(sentinel);
+}
+
 function updateDateDisplay() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     options.timeZone = resolveTimeZone(state.timeZone);
-    document.getElementById('current-date').innerText = new Intl.DateTimeFormat(undefined, options).format();
+    const now = new Date();
+    document.getElementById('current-date').innerText = new Intl.DateTimeFormat(undefined, options).format(now);
+    const shortDate = new Intl.DateTimeFormat(undefined, {
+        weekday: 'short', year: '2-digit', month: 'numeric', day: 'numeric', timeZone: options.timeZone
+    });
+    document.getElementById('toolbar-date').textContent = shortDate.formatToParts(now)
+        .map(({ type, value }) => type === 'day' || type === 'month' ? value.replace(/^0/, '') : value)
+        .join('');
 }
 
 async function checkDailyReset() {
@@ -431,6 +448,7 @@ function openSettings() {
     closeAddMenu();
     menu.classList.add('is-open');
     menu.setAttribute('aria-hidden', 'false');
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'instant' : 'smooth' });
 }
 
 function closeSettings() {
@@ -952,7 +970,8 @@ function updateProgress() {
     const activeGames = state.games.filter((game) => !isGameMuted(game));
     const count = state.playedIds.filter((id) => activeGames.some((game) => game.id === id)).length;
     const total = activeGames.length;
-    document.getElementById('progress-text').innerText = `${count} of ${total} opened today`;
+    document.getElementById('progress-count').textContent = `${count}/${total}`;
+    document.getElementById('progress-label').textContent = `${count} of ${total} visited today`;
 }
 
 function getFaviconUrl(gameUrl) {

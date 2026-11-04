@@ -56,7 +56,7 @@ body.app {
 }
 
 .app-header {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   text-align: center;
 }
 
@@ -73,8 +73,62 @@ body.app {
   font-size: 0.98rem;
 }
 
+#toolbar-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100001;
+  margin-bottom: 1.25rem;
+  padding: 0.65rem 0.25rem;
+  border-radius: 1rem;
+  text-align: center;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toolbar.is-stuck {
+  background-color: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.toolbar.is-stuck .btn-pill {
+  border-radius: 0.3rem;
+}
+
+.toolbar-date {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  transition: grid-template-rows 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+}
+
+.toolbar-date > span {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.is-stuck .toolbar-date {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+
+.progress-text {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .actions {
-  margin-top: 1.1rem;
   display: flex;
   gap: 0.75rem;
   justify-content: center;
@@ -90,6 +144,7 @@ body.app {
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
+    border-radius 0.2s ease,
     color 0.2s ease,
     transform 0.2s ease,
     opacity 0.2s ease;
@@ -929,6 +984,9 @@ hr {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .toolbar,
+  .toolbar .btn-pill,
+  .toolbar-date,
   .game-card,
   .puzzle-action-menu,
   .puzzle-dialog,
@@ -957,6 +1015,19 @@ hr {
 }
 
 @media (max-width: 560px) {
+  .app .puzzle-dialog {
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .add-menu {
+    margin-inline: -1.25rem;
+  }
+  .add-menu-panel {
+    border: 0;
+    border-radius: 0;
+  }
   .settings-defaults-reset-section,
   .settings-defaults-list-section {
     grid-template-columns: minmax(0, 1fr);
@@ -964,17 +1035,23 @@ hr {
   }
 
   .app-header {
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
   }
   .actions {
-    gap: 0.4rem;
-    margin-top: 0.75rem;
+    gap: 0.3rem;
   }
-  .actions .action-icon {
-    display: none;
+  .actions .btn-pill {
+    flex: 1;
+    min-width: 2.75rem;
+    border-radius: 0.3rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.7rem;
   }
-  .btn-pill {
-    padding-inline: 0.65rem;
+  .progress-text {
+    font-size: 0.75rem;
   }
   .game-item {
     padding: 0.6rem;

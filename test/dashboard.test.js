@@ -435,3 +435,58 @@ test('The or No The uses its bundled icon instead of the failing Google lookup',
     const icon = readFileSync(new URL('../icons/the-or-no-the.png', import.meta.url));
     assert.equal(icon.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 });
+
+test('toolbar sticks only after passing the top and restores its resting state', () => {
+    const app = dashboard();
+    const states = [];
+    app.fields.toolbar = { classList: { toggle(name, value) { states.push([name, value]); } } };
+    app.context.initToolbar();
+    const observer = app.context.observers[0];
+    assert.equal(observer.target, app.fields['toolbar-sentinel']);
+    for (const [isIntersecting, top] of [[true, 120], [false, -1], [false, 900], [true, 0]]) {
+        observer.run([{ isIntersecting, boundingClientRect: { top } }]);
+    }
+    assert.deepEqual(states, [['is-stuck', false], ['is-stuck', true], ['is-stuck', false], ['is-stuck', false]]);
+});
+
+test('visible visit count follows opening, reset, muted puzzles and an empty list', async () => {
+    const app = dashboard();
+    app.context.loadData();
+    app.state().games.push({ id: 'muted', name: 'Muted', url: 'https://example.com', mutedUntil: new Date('2099-01-01').getTime() });
+    app.state().playedIds.push('muted');
+    app.context.updateProgress();
+    assert.equal(app.fields['progress-count'].textContent, '1/1');
+    assert.equal(app.fields['progress-label'].textContent, '1 of 1 visited today');
+    await app.context.resetManual();
+    assert.equal(app.fields['progress-count'].textContent, '0/1');
+    await app.context.handleCardClick({
+        target: { closest: selector => selector === 'a' },
+        currentTarget: {
+            classList: { toggle() {} },
+            querySelector: selector => selector === '.played-label' ? {} : { setAttribute() {} }
+        }
+    }, 'wordle', 'https://www.nytimes.com/games/wordle');
+    assert.equal(app.fields['progress-count'].textContent, '1/1');
+    app.state().games = [];
+    app.context.updateProgress();
+    assert.equal(app.fields['progress-count'].textContent, '0/0');
+});
+
+test('sticky date uses the local short format and configured timezone without padded day or month', () => {
+    const app = dashboard();
+    app.state().timeZone = 'Europe/London';
+    app.context.Date = class extends Date {
+        constructor() { super('2026-11-04T12:00:00Z'); }
+    };
+    app.context.Intl = {
+        DateTimeFormat: class extends Intl.DateTimeFormat {
+            constructor(locale, options) { super('en-GB', options); }
+        }
+    };
+    app.context.updateDateDisplay();
+    assert.equal(app.fields['toolbar-date'].textContent, 'Wed, 4/11/26');
+    assert.equal(app.fields['current-date'].innerText, 'Wednesday, 4 November 2026');
+    app.state().timeZone = 'Pacific/Kiritimati';
+    app.context.updateDateDisplay();
+    assert.equal(app.fields['toolbar-date'].textContent, 'Thu, 5/11/26');
+});

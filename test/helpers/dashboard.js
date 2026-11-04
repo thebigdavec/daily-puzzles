@@ -69,6 +69,11 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
             open() {},
             matchMedia: () => ({ matches: true })
         },
+        IntersectionObserver: class {
+            constructor(run) { this.run = run; context.observers.push(this); }
+            observe(target) { this.target = target; }
+        },
+        observers: [],
         navigator: { locks },
         console: { error() {} },
         localStorage: storage,
@@ -77,7 +82,7 @@ export function dashboard(storage = makeStorage(), locks = makeLocks()) {
         initLibrary(options) { context.library = options; }
     };
     runInNewContext(`${source}
-        render = updateDateDisplay = updateResetSummary = updateProgress = () => {};
+        render = updateResetSummary = () => {};
         window.getState = () => state;
         window.selectGame = (id) => { editingGameId = id; };
         window.setDragging = (value) => { isDragging = value; };
