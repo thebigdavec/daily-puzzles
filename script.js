@@ -81,7 +81,7 @@ async function init() {
         pendingPauseDays = null;
         updatePauseOptions();
     });
-    ['edit-puzzle-dialog', 'mute-puzzle-dialog', 'remove-puzzle-dialog'].forEach((dialogId) => {
+    ['add-menu', 'settings-menu', 'edit-puzzle-dialog', 'mute-puzzle-dialog', 'remove-puzzle-dialog', 'puzzle-link-dialog'].forEach((dialogId) => {
         const dialog = document.getElementById(dialogId);
         dialog.addEventListener('close', () => {
             editingGameId = null;
@@ -216,7 +216,7 @@ function refreshDashboard() {
     scheduleResetCheck();
     scheduleRemovedGamesCleanup();
     scheduleMutedGamesRefresh();
-    if (document.getElementById('settings-menu').classList.contains('is-open')) {
+    if (document.getElementById('settings-menu').open) {
         populateSettings();
     }
 }
@@ -439,22 +439,13 @@ function populateSettings() {
 }
 
 function openSettings() {
-    if (document.getElementById('settings-menu').classList.contains('is-open')) {
-        closeSettings();
-        return;
-    }
     populateSettings();
-    const menu = document.getElementById('settings-menu');
     closeAddMenu();
-    menu.classList.add('is-open');
-    menu.setAttribute('aria-hidden', 'false');
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'instant' : 'smooth' });
+    document.getElementById('settings-menu').showModal();
 }
 
 function closeSettings() {
-    const menu = document.getElementById('settings-menu');
-    menu.classList.remove('is-open');
-    menu.setAttribute('aria-hidden', 'true');
+    document.getElementById('settings-menu').close();
 }
 
 async function saveSettings() {
@@ -546,7 +537,7 @@ async function sharePuzzleLink(id) {
 
     if (typeof navigator.share !== 'function') {
         closePuzzleActionMenu();
-        window.prompt('Sharing is not available in this browser. Copy this puzzle link to share it:', game.url);
+        openPuzzleLinkDialog(game, 'Copy this puzzle link to share it.');
         return;
     }
 
@@ -556,7 +547,7 @@ async function sharePuzzleLink(id) {
     } catch (error) {
         closePuzzleActionMenu();
         if (error.name !== 'AbortError') {
-            window.prompt('Could not open sharing. Copy this puzzle link to share it:', game.url);
+            openPuzzleLinkDialog(game, 'Could not open sharing. Copy this puzzle link to share it.');
         }
     }
 }
@@ -570,11 +561,21 @@ async function copyPuzzleLink(id) {
     try {
         await navigator.clipboard.writeText(game.url);
         closePuzzleActionMenu();
-        alert('Puzzle link copied. You can now paste it into a message or anywhere else.');
+        openPuzzleLinkDialog(game, 'Puzzle link copied. You can now paste it into a message or anywhere else.');
     } catch (error) {
         closePuzzleActionMenu();
-        window.prompt('Copy this puzzle link:', game.url);
+        openPuzzleLinkDialog(game, 'Copy this puzzle link.');
     }
+}
+
+function openPuzzleLinkDialog(game, message) {
+    document.getElementById('puzzle-link-title').textContent = game.name;
+    document.getElementById('puzzle-link-description').textContent = message;
+    const input = document.getElementById('puzzle-link-url');
+    input.value = game.url;
+    showPuzzleDialog(document.getElementById('puzzle-link-dialog'));
+    input.focus();
+    input.select();
 }
 
 function closePuzzleActionMenu() {

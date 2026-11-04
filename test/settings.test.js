@@ -98,30 +98,31 @@ test('saved zones remain selected and survive time changes with full and fallbac
     }
 });
 
-test('opening Settings returns to the panel and respects reduced motion; closing stays put', () => {
-    for (const reducedMotion of [false, true]) {
-        const app = dashboard();
-        const menu = app.context.document.getElementById('settings-menu');
-        let open = false;
-        menu.classList = {
-            contains: () => open,
-            add() { open = true; },
-            remove() { open = false; }
-        };
-        app.context.populateSettings = () => {};
-        app.context.window.matchMedia = () => ({ matches: reducedMotion });
-        let scrolls = 0;
-        app.context.window.scrollTo = ({ top, behavior }) => {
-            assert.equal(open, true);
-            assert.equal(top, 0);
-            assert.equal(behavior, reducedMotion ? 'instant' : 'smooth');
-            scrolls++;
-        };
-        app.context.openSettings();
-        assert.equal(scrolls, 1);
-        app.context.openSettings();
-        assert.equal(open, false);
-        assert.equal(scrolls, 1);
-        assert.equal(app.storage.writes, 0);
-    }
+test('Settings opens as a modal without scrolling or changing saved data', () => {
+    const app = dashboard();
+    const menu = app.context.document.getElementById('settings-menu');
+    menu.showModal = () => { menu.open = true; };
+    menu.close = () => { menu.open = false; };
+    app.context.populateSettings = () => {};
+    app.context.window.scrollTo = () => assert.fail('Opening a modal must not scroll the puzzle list');
+    app.context.openSettings();
+    assert.equal(menu.open, true);
+    app.context.closeSettings();
+    assert.equal(menu.open, false);
+    assert.equal(app.storage.writes, 0);
+});
+
+test('link fallback opens a modal with the puzzle URL selected for copying', () => {
+    const app = dashboard();
+    const dialog = app.context.document.getElementById('puzzle-link-dialog');
+    const input = app.context.document.getElementById('puzzle-link-url');
+    dialog.showModal = () => { dialog.open = true; };
+    let selected = false;
+    input.focus = () => {};
+    input.select = () => { selected = true; };
+    app.context.openPuzzleLinkDialog({ name: 'Wordle', url: 'https://example.com/' }, 'Copy this puzzle link.');
+    assert.equal(dialog.open, true);
+    assert.equal(input.value, 'https://example.com/');
+    assert.equal(selected, true);
+    assert.equal(app.fields['puzzle-link-title'].textContent, 'Wordle');
 });

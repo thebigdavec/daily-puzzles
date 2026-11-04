@@ -109,7 +109,7 @@ The page reports either **All reset schedule tests passed** or the failing asser
 | `test/reset-schedule.html`    | Browser test runner.                                                         |
 | `test/reset-schedule.test.js` | Reset-scheduling test cases.                                                 |
 
-`docs/mobile-app-navigation.md` is a design proposal. Its full-screen mobile navigation and browser-history behaviour are not implemented; the current app uses dialogs and an inline Settings panel.
+`docs/mobile-app-navigation.md` is a design proposal. Its full-screen mobile navigation and browser-history behaviour are not implemented; the current app uses top-aligned modal dialogs.
 
 ## Reviewing suggestions
 
