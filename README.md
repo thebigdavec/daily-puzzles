@@ -37,9 +37,9 @@ Library category choices also come from the catalogue entries, in their first-se
 
 Active and muted puzzle actions share native HTML popovers and event bindings. Tab reaches the actions, Arrow Down enters from the three-dot button, and Escape closes the popover and returns focus without rebuilding the list. Available actions depend on whether the puzzle is opened, muted or already in the library. Dashboard updates, including startup, use `refreshDashboard()`.
 
-The Library opens directly onto search, category filters and puzzles. Its Close button and add confirmation stay visible while the results scroll. Adding a puzzle keeps its card in place; reopening the Library groups existing entries at the end. The toolbar stays visible while scrolling, slides a short local date down beneath the buttons when stuck and back up when unstuck, and displays the visited/total count after **Reset All**. The count excludes muted puzzles. Narrow layouts use equal-width toolbar buttons with icons above their labels; settings controls stack on phones, where dialogs and the Settings panel span the screen without outer borders.
+The Library opens directly onto search, category filters and puzzles. Its Close button and add confirmation stay visible while the results scroll. Adding a puzzle keeps its card in place; reopening the Library groups existing entries at the end. The toolbar stays visible while scrolling, slides a short local date down beneath the buttons when stuck and back up when unstuck, and displays the visited/total count after **Reset All**. The count excludes muted puzzles. Narrow layouts use equal-width toolbar buttons with icons above their labels; settings controls stack on phones. At widths up to 560px, dialogs open as bottom sheets with rounded top corners, scrollable contents and space above the home indicator. The visible viewport keeps sheets above the on-screen keyboard; form actions stay outside the scrolling fields. Desktop dialogs retain their top-aligned presentation.
 
-Add, Library, Edit, Mute and Remove use native `<dialog>` elements. Add uses a real `<form>` with required fields, puzzle actions use `popover` / `popovertarget`, and inputs and selects remain native controls. SortableJS is retained only for dragging the reorder handle; keyboard reordering uses ordinary buttons.
+Add, Settings, Library, Edit, Mute, Remove and link feedback use native `<dialog>` elements. Add uses a real `<form>` with required fields, puzzle actions use `popover` / `popovertarget`, and inputs and selects remain native controls. SortableJS is retained only for dragging the reorder handle; keyboard reordering uses ordinary buttons.
 
 ## Run locally
 
@@ -109,7 +109,7 @@ The page reports either **All reset schedule tests passed** or the failing asser
 | `test/reset-schedule.html`    | Browser test runner.                                                         |
 | `test/reset-schedule.test.js` | Reset-scheduling test cases.                                                 |
 
-`docs/mobile-app-navigation.md` is a design proposal. Its full-screen mobile navigation and browser-history behaviour are not implemented; the current app uses top-aligned modal dialogs.
+`docs/mobile-app-navigation.md` is a design proposal. Its full-screen mobile navigation and browser-history behaviour are not implemented; the current app uses mobile bottom sheets and top-aligned desktop modal dialogs.
 
 ## Reviewing suggestions
 

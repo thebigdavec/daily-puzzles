@@ -37,6 +37,7 @@ let lastWrite;
 
 async function init() {
     initToolbar();
+    initDialogViewport();
     document.getElementById('add-puzzle-form').addEventListener('submit', (event) => {
         event.preventDefault();
         addNewGame();
@@ -133,6 +134,22 @@ async function init() {
             scheduleMutedGamesRefresh();
         }
     });
+}
+
+function initDialogViewport() {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    // The keyboard can shrink the visible viewport without changing dvh.
+    const update = () => {
+        const style = document.documentElement.style;
+        style.setProperty('--dialog-viewport-height', `${viewport.height}px`);
+        style.setProperty('--dialog-viewport-bottom', `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`);
+    };
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    update();
 }
 
 function loadData() {

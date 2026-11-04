@@ -995,11 +995,58 @@ hr {
 
 @media (max-width: 560px) {
   .app .puzzle-dialog {
+    --sheet-height: min(90dvh, calc(var(--dialog-viewport-height, 100dvh) - 1rem));
+    top: auto;
+    bottom: var(--dialog-viewport-bottom, 0px);
     width: 100%;
     max-width: 100%;
+    max-height: var(--sheet-height);
+    margin: 0;
     border: 0;
-    border-radius: 0;
+    border-radius: 1rem 1rem 0 0;
+    overflow: hidden;
+    transform: translateY(1rem);
   }
+
+  .app .puzzle-dialog:open {
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    .app .puzzle-dialog:open {
+      transform: translateY(1rem);
+    }
+  }
+
+  .app .puzzle-dialog .dialog-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: var(--sheet-height);
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .puzzle-dialog .menu-header,
+  .puzzle-dialog .dialog-header,
+  .puzzle-dialog .form-actions,
+  .puzzle-dialog .dialog-actions {
+    flex-shrink: 0;
+  }
+
+  .puzzle-dialog .menu-content,
+  .puzzle-dialog .dialog-form-grid,
+  .puzzle-dialog .pause-controls,
+  .puzzle-dialog .remove-options,
+  .puzzle-link-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 0.5rem;
+  }
+
+  .puzzle-dialog .input-field {
+    font-size: 1rem;
+  }
+
   .settings-defaults-reset-section,
   .settings-defaults-list-section {
     grid-template-columns: minmax(0, 1fr);

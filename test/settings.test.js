@@ -126,3 +126,44 @@ test('link fallback opens a modal with the puzzle URL selected for copying', () 
     assert.equal(selected, true);
     assert.equal(app.fields['puzzle-link-title'].textContent, 'Wordle');
 });
+
+test('dialog viewport follows keyboard height, browser panning and keyboard dismissal', () => {
+    const app = dashboard();
+    const values = {};
+    const events = {};
+    app.context.document.documentElement = {
+        style: { setProperty(name, value) { values[name] = value; } }
+    };
+    const viewport = app.context.window.visualViewport = {
+        height: 844,
+        offsetTop: 0,
+        addEventListener(name, run) { events[name] = run; }
+    };
+    app.context.window.innerHeight = 844;
+    app.context.initDialogViewport();
+    assert.equal(values['--dialog-viewport-height'], '844px');
+    assert.equal(values['--dialog-viewport-bottom'], '0px');
+
+    viewport.height = 480;
+    events.resize();
+    assert.equal(values['--dialog-viewport-height'], '480px');
+    assert.equal(values['--dialog-viewport-bottom'], '364px');
+
+    viewport.offsetTop = 60;
+    events.scroll();
+    assert.equal(values['--dialog-viewport-bottom'], '304px');
+
+    viewport.height = 844;
+    viewport.offsetTop = 0;
+    events.resize();
+    assert.equal(values['--dialog-viewport-bottom'], '0px');
+
+    app.context.window.innerHeight = 400;
+    app.events.resize();
+    assert.equal(values['--dialog-viewport-bottom'], '0px');
+});
+
+test('browsers without a visual viewport keep the CSS height fallback', () => {
+    const app = dashboard();
+    assert.doesNotThrow(() => app.context.initDialogViewport());
+});

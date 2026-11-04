@@ -8,7 +8,7 @@
     <meta name="description"
         content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css?v=33">
+    <link rel="stylesheet" href="main.css?v=34">
     <link rel="stylesheet" href="library.css?v=2">
 </head>
 
@@ -86,11 +86,11 @@
                             <input type="url" id="new-game-url" placeholder="https://..." class="input-field" required>
                         </label>
                     </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary btn-block">
-                            Add to List
-                        </button>
-                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Add to List
+                    </button>
                 </div>
             </form>
         </dialog>
@@ -274,11 +274,13 @@
                     <h2 id="puzzle-link-title">Puzzle link</h2>
                     <button class="close-control" type="button" onclick="closePuzzleDialog('puzzle-link-dialog')" aria-label="Close puzzle link">×</button>
                 </div>
-                <p id="puzzle-link-description"></p>
-                <label class="form-field" for="puzzle-link-url">
-                    <span class="field-label">Select and copy this link</span>
-                    <input id="puzzle-link-url" class="input-field" type="url" readonly>
-                </label>
+                <div class="puzzle-link-body">
+                    <p id="puzzle-link-description"></p>
+                    <label class="form-field" for="puzzle-link-url">
+                        <span class="field-label">Select and copy this link</span>
+                        <input id="puzzle-link-url" class="input-field" type="url" readonly>
+                    </label>
+                </div>
             </div>
         </dialog>
 
@@ -435,7 +437,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script type="module" src="script.js?v=42"></script>
+    <script type="module" src="script.js?v=43"></script>
 </body>
 
 </html>
