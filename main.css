@@ -100,23 +100,31 @@ body.app {
 
 .toolbar-date {
   display: grid;
+  overflow: hidden;
   grid-template-rows: 0fr;
+  margin-top: 0;
   opacity: 0;
   visibility: hidden;
   color: var(--text-secondary);
   font-size: 0.8rem;
-  transition: grid-template-rows 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+  transition: grid-template-rows 0.2s ease, margin-top 0.2s ease, opacity 0.2s ease, visibility 0.2s;
 }
 
 .toolbar-date > span {
   min-height: 0;
-  overflow: hidden;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease;
 }
 
 .is-stuck .toolbar-date {
   grid-template-rows: 1fr;
+  margin-top: 0.4rem;
   opacity: 1;
   visibility: visible;
+}
+
+.is-stuck .toolbar-date > span {
+  transform: translateY(0);
 }
 
 .progress-text {
@@ -987,6 +995,7 @@ hr {
   .toolbar,
   .toolbar .btn-pill,
   .toolbar-date,
+  .toolbar-date > span,
   .game-card,
   .puzzle-action-menu,
   .puzzle-dialog,

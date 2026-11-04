@@ -8,7 +8,7 @@
     <meta name="description"
         content="A daily puzzle dashboard to save puzzle links, reorder your list, mark puzzles as played, and auto-reset progress every day.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="main.css?v=30">
+    <link rel="stylesheet" href="main.css?v=31">
     <link rel="stylesheet" href="library.css?v=2">
 </head>
 
@@ -20,7 +20,6 @@
         </header>
         <div id="toolbar-sentinel" aria-hidden="true"></div>
         <div id="toolbar" class="toolbar" role="group" aria-label="Puzzle controls">
-            <div class="toolbar-date"><span id="toolbar-date"></span></div>
             <div class="actions">
                 <button type="button" id="open-library" class="btn btn-pill btn-secondary">
                     <svg class="action-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -57,6 +56,7 @@
                     <span id="progress-label" class="screen-reader-only">0 of 0 visited today</span>
                 </span>
             </div>
+            <div class="toolbar-date"><span id="toolbar-date"></span></div>
         </div>
         <p id="storage-status" class="library-copy" role="alert" hidden></p>
         <p id="dashboard-status" class="dashboard-status" role="status" aria-live="polite" aria-atomic="true"></p>
